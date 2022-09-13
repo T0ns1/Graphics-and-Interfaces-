@@ -1,2 +1,2 @@
-# Graphics-and-Interfaces-
-An education repo with JS  and WebGL projects without the use of Three.js
+# Graphics and Interfaces
+An educational repo with JS and WebGL projects without the use of Three.js
