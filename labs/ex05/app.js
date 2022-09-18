@@ -16,7 +16,7 @@ function setup(shaders)
     program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
     program2 = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader2.frag"]);
 
-    const vertices = [ vec2(-0.5, -0.5), vec2(0.5, -0.5), vec2(0, 0.5), vec2(-0.5, -0.5), vec2(0.5, -0.5), vec2(0, 0.5), vec2(-0.5, -0.5)  ];
+    const vertices = [ vec2(-0.5, -0.5), vec2(0.5, -0.5), vec2(0, 0.5), vec2(-0.5, -0.5)  ];
     
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
