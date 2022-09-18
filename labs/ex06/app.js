@@ -31,18 +31,8 @@ function generateRandomCoordinate()
 
 function generateRandomVertice(x, y)
 {
-    var w;
-    var z;
-
-    if (coinFlip())
-    {
-        w = x + ( Math.random() * 0.1);
-        z = y + ( Math.random() * 0.1); 
-    }
-    else {
-        w = x + ( Math.random() * 0.1);
-        z = y + ( Math.random() * 0.1); 
-    }
+    const w = x + (generateRandomCoordinate()*0.07);
+    const z = y + (generateRandomCoordinate()*0.07);
 
     return vec2(w, z);
 }
