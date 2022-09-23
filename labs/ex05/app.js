@@ -16,7 +16,7 @@ function setup(shaders)
     program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
     program2 = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader2.frag"]);
 
-    const vertices = [ vec2(-0.5, -0.5), vec2(0.5, -0.5), vec2(0, 0.5), vec2(-0.5, -0.5)  ];
+    const vertices = [ vec2(-0.5, -0.5), vec2(0.5, -0.5), vec2(0, 0.5)  ];
     
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -47,7 +47,7 @@ function animate()
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
     gl.useProgram(program2);
-    gl.drawArrays(gl.LINE_STRIP, 0, 4);
+    gl.drawArrays(gl.LINE_LOOP, 0, 3);
 }
 
 loadShadersFromURLS(["shader.vert", "shader.frag", "shader2.frag"]).then(shaders => setup(shaders))

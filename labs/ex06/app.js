@@ -6,33 +6,41 @@ import { flatten, vec2 } from "../../libs/MV.js";
 /** @type {WebGLRenderingContext} */
 var gl;
 var program;
-const numberTriangles = 1000; 
-
-function coinFlip()
-{
-    const random = Math.random();
-    if (random > 0.5) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
+const numberTriangles = 10000;
 
 function generateRandomCoordinate()
 {
-    if (coinFlip()) {
-        return Math.random();
-    }
-    else {
-        return -Math.random();
-    }
+    return (Math.random() * 2) - 1;
 }
 
 function generateRandomVertice(x, y)
 {
-    const w = x + (generateRandomCoordinate()*0.07);
-    const z = y + (generateRandomCoordinate()*0.07);
+    let w = x + (generateRandomCoordinate()*0.03);
+    let z = y + (generateRandomCoordinate()*0.03);
+
+    if ( Math.abs(w - x) < 0.001 )
+    {
+        if (w < 0) 
+        {
+            w = x - 0.001;
+        }
+        else
+        {
+            w = x + 0.001;
+        }
+    }
+
+    if ( Math.abs(z - y) < 0.001 )
+    {
+        if (z < 0) 
+        {
+            z = y - 0.001;
+        }
+        else
+        {
+            z = y + 0.001;
+        }
+    }
 
     return vec2(w, z);
 }
@@ -43,8 +51,8 @@ function generateSmallTrianglesVertices(totalTriangles)
 
     for (let i = 0 ; i < totalTriangles ; i++)
     {
-    var x = generateRandomCoordinate();
-    var y = generateRandomCoordinate();
+    let x = generateRandomCoordinate();
+    let y = generateRandomCoordinate();
         for (let j = 0 ; j < 3 ; j++)
         {
             vertices.push( generateRandomVertice(x, y) );

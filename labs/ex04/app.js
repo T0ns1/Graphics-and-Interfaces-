@@ -15,7 +15,7 @@ function setup(shaders)
     gl = setupWebGL(canvas);
     program = buildProgramFromSources(gl, shaders["shader.vert"], shaders["shader.frag"]);
 
-    const vertices = [ vec2(-0.5, -0.5), vec2(0.5, -0.5), vec2(-0.5, 0.5), vec2(0.5, -0.5), vec2(0.5, 0.5), vec2(-0.5, 0.5) ];
+    const vertices = [ vec2(-0.5, -0.5), vec2(0.5, -0.5), vec2(-0.5, 0.5), vec2(0.5, 0.5) ];
     
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -39,7 +39,7 @@ function animate()
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.useProgram(program);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
 loadShadersFromURLS(["shader.vert", "shader.frag"]).then(shaders=>setup(shaders));
