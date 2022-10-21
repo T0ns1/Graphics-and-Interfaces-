@@ -85,12 +85,17 @@ function setup(shaders)
     });
     document.getElementById("add_cube").addEventListener("click", function(index) {
         instances.push("cube");
+        const box = document.getElementById("object_instances");
+        var option = document.createElement("option");
+        option.text = "Cube " + instances.length-1;
+        option.id = instances.length-1;
+        box.add(option);
     });
     document.getElementById("add_sphere").addEventListener("click", function(index) {
         instances.push("sphere");
         const box = document.getElementById("object_instances");
         var option = document.createElement("option");
-        option.text = "Sphere" + instances.length;
+        option.text = "Sphere " + instances.length-1;
         option.id = instances.length-1;
         box.add(option);
     });
