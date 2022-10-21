@@ -122,10 +122,10 @@ function setup(shaders)
         px = document.getElementById("px").value;
     });
     document.getElementById("py").addEventListener("change", function() {
-        px = document.getElementById("py").value;
+        py = document.getElementById("py").value;
     });
     document.getElementById("pz").addEventListener("change", function() {
-        px = document.getElementById("pz").value;
+        pz = document.getElementById("pz").value;
     });
 
 
