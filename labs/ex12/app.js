@@ -39,8 +39,8 @@ function render(time)
     
     let t = translate(px, py, pz);
     let rZ = rotateZ(rz);
-    let rY = rotate(ry);
-    let rX = rotate(rx);
+    let rY = rotateY(ry);
+    let rX = rotateX(rx);
     let s = scalem(sx, sy, sz);
         
     let mModel = mult(t, mult(rz, mult(ry, mult(rx, s))));
