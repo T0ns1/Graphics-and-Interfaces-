@@ -43,11 +43,11 @@ function render(time)
     let rX = rotateX(rx);
     let s = scalem(sx, sy, sz);
         
-    let mModel = mult(t, mult(rz, mult(ry, mult(rx, s))));
+    let mModel = mult(t, mult(rZ, mult(rY, mult(rX, s))));
     
     const uCtm = gl.getUniformLocation(program, "uCtm");
-    gl.uniformMatrix4fv(uCtm, false, flatten(mult(mProjection, mult(mView, mat4()))));
-    //gl.uniformMatrix4fv(uCtm, false, flatten(mult(mProjection, mult(mView, mModel))));
+    //gl.uniformMatrix4fv(uCtm, false, flatten(mult(mProjection, mult(mView, mat4()))));
+    gl.uniformMatrix4fv(uCtm, false, flatten(mult(mProjection, mult(mView, mModel))));
     
     for (let i = 0; i < instances.length; i++) {
         switch(instances[i]) {
