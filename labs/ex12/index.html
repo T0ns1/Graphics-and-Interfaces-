@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="styles.css">
+        <title>Exemplo 12</title>
+    </head>
+    <body>
+        <script type="module" src="./app.js"></script>
+        <div id="top-grid">
+            <div id="view">
+                <canvas id="gl-canvas"></canvas>
+            </div>
+            <div id="interface">
+                <div>Scene:</div>
+                <div id="objects">
+                    <select id="object_instances" name="scene" size="20"></select>
+                </div>
+                <hr>
+                <div id="add_object">
+                    <button id="add_cube">Add Cube</button>
+                    <button id="add_sphere">Add Sphere</button>
+                    <button>Remove</button>
+                </div>
+                <hr>
+                <div id="transform_container">
+                    <div>Transform</div>
+                    <div id="position_container" class="wrapper">
+                        <div>Position</div>
+                        <div>X</div>
+                        <div><input type="number" value="0" step="0.05" id="px"></div>
+                        <div>Y</div>
+                        <div><input type="number" value="0" step="0.05" id="py"></div>
+                        <div>Z</div>
+                        <div><input type="number" value="0" step="0.05" id="pz"></div>
+                    </div>
+                    <div id="scale_container" class="wrapper">
+                        <div>Scale</div>
+                        <div>X</div>
+                        <div><input type="number" min="0.05" value="1.0" step="0.05" id="sx"></div>
+                        <div>Y</div>
+                        <div><input type="number" min="0.05" value="1.0" step="0.05" id="sy"></div>
+                        <div>Z</div>
+                        <div><input type="number" min="0.05" value="1.0" step="0.05" id="sz"></div>
+                    </div>
+                    <div id="rotation_container" class="wrapper">
+                        <div>Rotation</div>
+                        <div>X</div>
+                        <div><input type="number" min="-180" max="180" step="1" value="1.0" id="rx"></div>
+                        <div>Y</div>
+                        <div><input type="number" min="-180" max="180" step="1" value="0.0" id="ry"></div>
+                        <div>Z</div>
+                        <div><input type="number" min="-180" max="180" step="1" value="0.0" id="rz"></div>
+                    </div>
+                </div> 
+            </div>    
+        </div>
+        
+    </body>    
+</html>

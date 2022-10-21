@@ -1,0 +1,42 @@
+body, html {
+    height: 100%;
+}
+body {
+    /*display: flex;*/
+    margin: 0px;
+    overflow: hidden; /*  Disable scrollbars */
+}
+
+#top-grid {
+    display: grid;
+    grid-template-columns: minmax(10%,1fr) max-content;
+    grid-gap: 0px;
+}
+
+
+
+#interface {
+    margin: 0px;
+}
+
+#object_instances {
+    width: 100%;
+}
+
+input[type=number]{ 
+    text-align: right;
+    width: 4em;
+}
+
+.wrapper {
+    display: flex;
+}
+
+.wrapper > div {
+    flex: 1;
+}
+
+.wrapper > :first-child {
+    width: 120px;
+    flex: none;
+}
