@@ -1,5 +1,5 @@
 import { loadShadersFromURLS, setupWebGL, buildProgramFromSources } from '../../libs/utils.js';
-import { mat4, vec3, flatten, lookAt, ortho, mult } from '../../libs/MV.js';
+import { mat4, vec3, flatten, lookAt, ortho, mult, translate, rotateX, rotateY, rotateZ, scalem } from '../../libs/MV.js';
 
 import * as SPHERE from './js/sphere.js';
 import * as CUBE from './js/cube.js';
@@ -17,6 +17,16 @@ const edge = 2.0;
 
 let instances = [];
 
+// Global Variables for our transformations
+let px = 0.0;
+let py = 0.0;
+let pz = 0.0;
+let sx = 1.0;
+let sy = 1.0;
+let sz = 1.0;
+let rx = 1.0;
+let ry = 0.0;
+let rz = 0.0;
 
 
 function render(time)
@@ -26,10 +36,19 @@ function render(time)
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     gl.useProgram(program);
-
+    
+    let t = translate(px, py, pz);
+    let rZ = rotateZ(rz);
+    let rY = rotate(ry);
+    let rX = rotate(rx);
+    let s = scalem(sx, sy, sz);
+        
+    let mModel = mult(t, mult(rz, mult(ry, mult(rx, s))));
+    
     const uCtm = gl.getUniformLocation(program, "uCtm");
-    gl.uniformMatrix4fv(uCtm, false, flatten(mult(mProjection, mult(mView, mat4()))));
-
+    //gl.uniformMatrix4fv(uCtm, false, flatten(mult(mProjection, mult(mView, mat4()))));
+    gl.uniformMatrix4fv(uCtm, false, flatten(mult(mProjection, mult(mView, mModel))));
+    
     for (let i = 0; i < instances.length; i++) {
         switch(instances[i]) {
             case "cube":
@@ -98,6 +117,15 @@ function setup(shaders)
         option.text = "Sphere " + (instances.length-1);
         option.id = instances.length-1;
         box.add(option);
+    });
+    document.getElementById("px").addEventListener("change", function() {
+        px = document.getElementById("px").value;
+    });
+    document.getElementById("py").addEventListener("change", function() {
+        px = document.getElementById("py").value;
+    });
+    document.getElementById("pz").addEventListener("change", function() {
+        px = document.getElementById("pz").value;
     });
 
 
