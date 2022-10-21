@@ -88,6 +88,11 @@ function setup(shaders)
     });
     document.getElementById("add_sphere").addEventListener("click", function(index) {
         instances.push("sphere");
+        const box = document.getElementById("object_instances");
+        var option = document.createElement("option");
+        option.text = "Sphere" + instances.length;
+        option.id = instances.length-1;
+        box.add(option);
     });
 
 
