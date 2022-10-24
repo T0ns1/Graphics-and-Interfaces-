@@ -118,6 +118,36 @@ function setup(shaders)
         option.id = instances.length-1;
         box.add(option);
     });
+    document.getElementById("remove").addEventListener("click", function() {
+        const box = document.getElementById("object_instances");
+        const sIndex = box.selectedIndex;
+        const length = instances.length;
+        console.log(sIndex);
+        
+        for (let i = sIndex; i < length; i++) {
+            document.getElementById(i).remove();
+            if (i+1 != length) { 
+                instances.splice(i, 1, instances[i+1]);
+
+                let option = document.createElement("option");
+                switch(instances[i+1]) {
+                    case "cube":
+                        option.text= "Cube " + i;
+                        option.id = i;
+                        box.add(option);
+                        break;
+                    case "sphere":
+                        option.text = "Sphere " + i;
+                        option.id = i;
+                        box.add(option);
+                        break;
+                }
+            }
+            else instances.pop();
+        }
+        console.log(instances);
+
+    });
     document.getElementById("px").addEventListener("change", function() {
         px = document.getElementById("px").value;
     });
@@ -126,6 +156,24 @@ function setup(shaders)
     });
     document.getElementById("pz").addEventListener("change", function() {
         pz = document.getElementById("pz").value;
+    });
+    document.getElementById("rx").addEventListener("change", function() {
+        rx = document.getElementById("rx").value;
+    });
+    document.getElementById("ry").addEventListener("change", function() {
+        ry = document.getElementById("ry").value;
+    });
+    document.getElementById("rz").addEventListener("change", function() {
+        rz = document.getElementById("rz").value;
+    });
+    document.getElementById("sx").addEventListener("change", function() {
+        sx = document.getElementById("sx").value;
+    });
+    document.getElementById("sy").addEventListener("change", function() {
+        sy = document.getElementById("sy").value;
+    });
+    document.getElementById("sz").addEventListener("change", function() {
+        sz = document.getElementById("sz").value;
     });
 
 
