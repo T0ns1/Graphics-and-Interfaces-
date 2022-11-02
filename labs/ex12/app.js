@@ -3,6 +3,7 @@ import { mat4, vec3, flatten, lookAt, ortho, mult, translate, rotateX, rotateY, 
 
 import * as SPHERE from './js/sphere.js';
 import * as CUBE from './js/cube.js';
+import * as PYRAMID from './js/pyramid.js';
 
 /** @type {WebGLRenderingContext} */
 let gl;
@@ -60,6 +61,9 @@ function render(time)
             case "sphere":
                 SPHERE.draw(gl, program, gl.LINES);
                 break;
+            case 'pyramid':
+                PYRAMID.draw(gl, program, gl.LINES);
+                break;
         }
     }
 }
@@ -84,6 +88,7 @@ function setup(shaders)
 
     SPHERE.init(gl);
     CUBE.init(gl);
+    PYRAMID.init(gl);
 
     function setupProjection()
     {
@@ -147,6 +152,27 @@ function setup(shaders)
 
         box.add(option);
     });
+    document.getElementById("add_pyramid").addEventListener("click", function() {
+        instances.push("pyramid");
+
+        px.push(1.0);
+        py.push(1.0);
+        pz.push(1.0);
+        rx.push(1.0);
+        ry.push(0.0);
+        rz.push(0.0);
+        sx.push(1.0);
+        sy.push(1.0);
+        sz.push(1.0);
+
+        const box = document.getElementById("object_instances");
+
+        let option = document.createElement("option");
+        option.text = "Pyramid " + (instances.length-1);
+        option.id = instances.length-1;
+
+        box.add(option);
+    });
     document.getElementById("object_instances").addEventListener("change", function() {
         const index = document.getElementById("object_instances").selectedIndex;
         document.getElementById("px").value = px[index];
@@ -191,6 +217,11 @@ function setup(shaders)
                         option.id = i;
                         box.add(option);
                         break;
+                    case "pyramid":
+                        option.text = "Pyramid " + i;
+                        option.id = i;
+                        box.add(option);
+                        break;                       
                 }
             }
             else {
