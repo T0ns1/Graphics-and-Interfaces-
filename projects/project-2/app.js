@@ -1,5 +1,5 @@
 import { loadShadersFromURLS, setupWebGL, buildProgramFromSources } from '../../libs/utils.js';
-import { mat4, vec3, flatten, lookAt, ortho, mult, cross, subtract, add } from '../../libs/MV.js';
+import { mat4, vec3, flatten, lookAt, ortho, mult, cross, subtract, add, rotateZ } from '../../libs/MV.js';
 import {modelView, loadMatrix, multRotationY, multScale, pushMatrix, popMatrix, multTranslation, multRotationX, multRotationZ } from "../../libs/stack.js";
 import * as CUBE from '../../libs/objects/cube.js';
 import * as SPHERE from '../../libs/objects/sphere.js';
@@ -19,6 +19,8 @@ const edge = 2.0;
 /** Theta and gamma (degrees) for our projections */
 let theta = 45;
 let gamma = 45;
+
+let alpha = 0;
 
 let mode;
 
@@ -130,33 +132,40 @@ function render(time)
         gl.uniform3fv(uColor, vec3(0.0, 0.4, 0.4)); // cyan
 
         pushMatrix();
-            multTranslation([1.02, 0.12, 0.04]);
+            multTranslation([1.07, 0.12, 0.04]);
+            multRotationZ(alpha); // Rotorrs angle
+            multTranslation([-0.05,0.0,0.0]);
             multScale([0.1, 0.05, 0.02]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
         popMatrix();
         pushMatrix();
-            multTranslation([1.12, 0.12, 0.04]);
+            multTranslation([1.07, 0.12, 0.04]);
+            multRotationZ(alpha); // Rotors angle
+            multTranslation([0.05,0.0,0.0]);
             multScale([0.1, 0.05, 0.02]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
         popMatrix();
         pushMatrix();
-            multTranslation([0.37, 0.18, 0.0]);
+            multRotationY(alpha);
+            multTranslation([0.4, 0.18, 0.0]);
             multScale([0.8, 0.03, 0.1]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
         popMatrix();
         pushMatrix();
-            multTranslation([-0.28, 0.18, -0.28]);
-            multRotationY(-45);
+            multRotationY(alpha);
+            multRotationY(-60);
+            multTranslation([-0.4, 0.18, -0.0]);
             multScale([0.8, 0.03, 0.1]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
         popMatrix();
         pushMatrix();
-            multTranslation([-0.28, 0.18, 0.28]);
-            multRotationY(45);
+            multRotationY(alpha);
+            multRotationY(60);
+            multTranslation([-0.4, 0.18, 0.0]);
             multScale([0.8, 0.03, 0.1]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
@@ -181,7 +190,7 @@ function setup(shaders)
     gl.clearColor(0.1, 0.1, 0.1, 1.0);
     gl.viewport(0,0,canvas.width, canvas.height);
 
-    mode = gl.TRIANGLES;
+    mode = gl.LINES;
     const eye = vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.sin(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180));
     const at = vec3(0,0,0);
     const up = vec3(0,1,0);
@@ -244,6 +253,12 @@ function setup(shaders)
             case "m":
                 if (mode == gl.TRIANGLES) mode = gl.LINES;
                 else mode = gl.TRIANGLES;
+                break;
+            case "ArrowUp":
+                alpha++;
+                break;
+            case "ArrowDown":
+                alpha--;
                 break;
         }
         
