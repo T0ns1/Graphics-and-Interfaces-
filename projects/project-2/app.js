@@ -1,6 +1,6 @@
 import { loadShadersFromURLS, setupWebGL, buildProgramFromSources } from '../../libs/utils.js';
 import { mat4, vec3, flatten, lookAt, ortho, mult, cross, subtract, add } from '../../libs/MV.js';
-import {modelView, loadMatrix, multRotationY, multScale, pushMatrix, popMatrix, multTranslation } from "../../libs/stack.js";
+import {modelView, loadMatrix, multRotationY, multScale, pushMatrix, popMatrix, multTranslation, multRotationX, multRotationZ } from "../../libs/stack.js";
 import * as CUBE from '../../libs/objects/cube.js';
 import * as SPHERE from '../../libs/objects/sphere.js';
 import * as CYLINDER from '../../libs/objects/cylinder.js';
@@ -20,11 +20,14 @@ const edge = 2.0;
 let theta = 45;
 let gamma = 45;
 
+let mode;
+
 function render(time)
 {
+
     window.requestAnimationFrame(render);
 
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.useProgram(program);
 
@@ -32,9 +35,135 @@ function render(time)
 
     loadMatrix(mView);
 
-    gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
+    Helicopter();
 
-    CUBE.draw(gl, program, gl.LINES);
+    function uploadModelView()
+    {
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
+    }
+
+    function Helicopter()
+    {
+        const uColor = gl.getUniformLocation(program, "uColor");
+        gl.uniform3fv(uColor, vec3(1.0, 0.0, 0.0)); // red
+        
+        pushMatrix();
+            multScale([0.8, 0.3, 0.3]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0.6, 0.05, 0.0]);
+            multScale([1.0, 0.1, 0.1]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([1.07, 0.12, 0.0]);
+            multRotationZ(-10);
+            multScale([0.1, 0.18, 0.05]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+
+        gl.uniform3fv(uColor, vec3(1.0, 1.0, 0.0)); // yellow
+
+        pushMatrix();
+            multTranslation([0.0,0.18,0.0]);
+            multScale([0.02,0.07,0.02]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([1.07,0.12,0.0]);
+            multRotationX(90);
+            multScale([0.02, 0.1, 0.02]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0.0, -0.25, 0.1]);
+            multRotationZ(90);
+            multScale([0.03, 0.6, 0.03]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0.0, -0.25, -0.1]);
+            multRotationZ(90);
+            multScale([0.03, 0.6, 0.03]);
+            uploadModelView();
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
+
+        gl.uniform3fv(uColor, vec3(0.86, 0.86, 0.86)); // grey
+
+        pushMatrix();
+            multTranslation([-0.08,-0.18,-0.06]);
+            multRotationX(30);
+            multScale([0.02,0.14,0.02]);
+            uploadModelView();
+            CUBE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0.08,-0.18,-0.06]);
+            multRotationX(30);
+            multScale([0.02,0.14,0.02]);
+            uploadModelView();
+            CUBE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0.08,-0.18,0.06]);
+            multRotationX(-30);
+            multScale([0.02,0.14,0.02]);
+            uploadModelView();
+            CUBE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([-0.08,-0.18,0.06]);
+            multRotationX(-30);
+            multScale([0.02,0.14,0.02]);
+            uploadModelView();
+            CUBE.draw(gl, program, mode);
+        popMatrix();
+
+        gl.uniform3fv(uColor, vec3(0.0, 0.4, 0.4)); // cyan
+
+        pushMatrix();
+            multTranslation([1.02, 0.12, 0.04]);
+            multScale([0.1, 0.05, 0.02]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([1.12, 0.12, 0.04]);
+            multScale([0.1, 0.05, 0.02]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([0.37, 0.18, 0.0]);
+            multScale([0.8, 0.03, 0.1]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([-0.28, 0.18, -0.28]);
+            multRotationY(-45);
+            multScale([0.8, 0.03, 0.1]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        pushMatrix();
+            multTranslation([-0.28, 0.18, 0.28]);
+            multRotationY(45);
+            multScale([0.8, 0.03, 0.1]);
+            uploadModelView();
+            SPHERE.draw(gl, program, mode);
+        popMatrix();
+        
+    }
+
 }
 
 
@@ -52,6 +181,7 @@ function setup(shaders)
     gl.clearColor(0.1, 0.1, 0.1, 1.0);
     gl.viewport(0,0,canvas.width, canvas.height);
 
+    mode = gl.TRIANGLES;
     const eye = vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.sin(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180));
     const at = vec3(0,0,0);
     const up = vec3(0,1,0);
@@ -59,6 +189,12 @@ function setup(shaders)
     setupProjection();
 
     CUBE.init(gl);
+    SPHERE.init(gl);
+    CYLINDER.init(gl);
+
+    gl.enable(gl.DEPTH_TEST);   // Enables Z-buffer depth test
+
+    window.requestAnimationFrame(render);
 
     function setupProjection()
     {
@@ -72,6 +208,7 @@ function setup(shaders)
         }
 
     }
+
     window.addEventListener("resize", function() {
         canvas.width = canvas.parentElement.clientWidth;
         canvas.height = window.innerHeight;
@@ -80,6 +217,7 @@ function setup(shaders)
     
         gl.viewport(0,0,canvas.width, canvas.height);
     });
+
     window.addEventListener("keydown", function(event) {
         console.log(event.key);
         switch(event.key) {
@@ -103,13 +241,16 @@ function setup(shaders)
                 if (gamma <= 0) gamma = gamma + 360;
                 console.log(gamma);
                 break;
+            case "m":
+                if (mode == gl.TRIANGLES) mode = gl.LINES;
+                else mode = gl.TRIANGLES;
+                break;
         }
         
         mView = lookAt(vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.cos(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180)), vec3(0,0,0), vec3(0,1,0));
 
     });
 
-    window.requestAnimationFrame(render);
 }
 
 const shaderUrls = ['shader.vert', 'shader.frag'];
