@@ -229,19 +229,6 @@ function setup(shaders)
         SPHERE.draw(gl, program, mode);
     }
 
-    function Jupiter()
-    {
-        //Scale and rotation around the y axis
-        multScale([JUPITER_DIAMETER, JUPITER_DIAMETER, JUPITER_DIAMETER]);
-        multRotationY(360*time/JUPITER_DAY);
-
-        // Send the current modelview to the vertex shader
-        uploadModelView();
-
-        // Draw a sphere representing jupiter
-        SPHERE.draw(gl, program, mode);
-    }
-
     function Saturn()
     {
         //Scale and rotation around the y axis
