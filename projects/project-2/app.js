@@ -14,17 +14,32 @@ let program;
 let mView;
 let mProjection;
 
-const edge = 2.0;
+const edge = 50;
 
 /** Theta and gamma (degrees) for our projections */
-let theta = 45;
+let theta = 90;
 let gamma = 45;
 
+/** Helicopter animation parameters */
 let alpha = 0;
+let dAlpha = 0;
+let beta = 0;
+let delta = 0;
+let dDelta = 0;
+let height = 0;
+const MAX_HEIGHT = 40;
+let time = 0;
+const speed = 1/60;
+let engineAnimation = false;
+let movementAnimation = false;
+
+/** Helicopter objects */
+let engineStarted = false;
 
 let mode;
+let animation = true;
 
-function render(time)
+function render()
 {
 
     window.requestAnimationFrame(render);
@@ -37,11 +52,64 @@ function render(time)
 
     loadMatrix(mView);
 
-    Helicopter();
+    if (animation) {
+        
+        if (engineAnimation && !engineStarted) {
+            time += speed;
+            dAlpha = easeInExpo(time, 0, 15, 5);
+            if (dAlpha >= 15) {
+                engineStarted = true;
+                time = 0;
+            }
+        }
+        
+        if (movementAnimation && engineStarted) {
+            time += speed;
+            if (time >= 0.85) time = 0.85;
+            beta = easeInOutCubic(time, 0, 30, 0.85);
+            dDelta = easeInExpo(time, 0, 2, 0.85);
+        }
+
+        alpha += dAlpha;
+        delta += dDelta;
+    }
+
+    floor();
+    pushMatrix();
+        multRotationY(-delta);
+        multTranslation([0.0,height,50.0]);
+        multRotationZ(beta);
+        Helicopter();
+    popMatrix();
+
+    movementAnimation = false;
 
     function uploadModelView()
     {
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
+    }
+
+    function easeInExpo (t, b, c, d) {
+        if (t >= d) t = d;
+        return (t == 0) ? b : c * Math.pow(2, 10 * (t / d - 1)) + b;
+    }
+
+    function easeInOutCubic (t, b, c, d) {
+        if ((t /= d / 2) < 1) return c / 2 * t * t * t + b;
+        return c / 2 * ((t -= 2) * t * t + 2) + b;
+    }
+
+    function floor()
+    {
+        const uColor = gl.getUniformLocation(program, "uColor");
+        gl.uniform3fv(uColor, vec3(0.1,0.1,0.1)); //grey
+
+        pushMatrix();
+            multScale([150,1,150]);
+            multTranslation([0.0,0.5,0.0]);
+            uploadModelView();
+            CUBE.draw(gl, program, mode);
+        popMatrix();
     }
 
     function Helicopter()
@@ -49,6 +117,11 @@ function render(time)
         const uColor = gl.getUniformLocation(program, "uColor");
         gl.uniform3fv(uColor, vec3(1.0, 0.0, 0.0)); // red
         
+        // Scale helicopter
+        multScale([7.2,10,7.2]);
+        // level with ground
+        multTranslation([0.0,0.37,0.0]);
+
         pushMatrix();
             multScale([0.8, 0.3, 0.3]);
             uploadModelView();
@@ -179,23 +252,26 @@ function render(time)
 
 function setup(shaders)
 {
-    const canvas = document.getElementById('gl-canvas');
+    let canvas = document.getElementById('gl-canvas');
 
-    canvas.width = canvas.parentElement.clientWidth;
+    canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+
+    let aspect = canvas.width / canvas.height;
 
     gl = setupWebGL(canvas);
     program = buildProgramFromSources(gl, shaders['shader.vert'], shaders['shader.frag']);
 
-    gl.clearColor(0.1, 0.1, 0.1, 1.0);
+    mode = gl.TRIANGLES;
+
+    gl.clearColor(0.1, 0.7, 0.7, 1.0);
     gl.viewport(0,0,canvas.width, canvas.height);
 
-    mode = gl.LINES;
     const eye = vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.sin(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180));
     const at = vec3(0,0,0);
     const up = vec3(0,1,0);
     mView = lookAt(eye, at, up);
-    setupProjection();
+    mProjection = ortho(-edge*aspect,edge*aspect, -edge, edge,-3*edge,3*edge);
 
     CUBE.init(gl);
     SPHERE.init(gl);
@@ -205,26 +281,14 @@ function setup(shaders)
 
     window.requestAnimationFrame(render);
 
-    function setupProjection()
-    {
-        if(canvas.width < canvas.height) {
-            const yLim = edge*canvas.height/canvas.width;
-            mProjection = ortho(-edge, edge, -yLim, yLim, -10, 10);
-        }
-        else {
-            const xLim = edge*canvas.width/canvas.height;
-            mProjection = ortho(-xLim, xLim, -edge, edge, -10, 10);
-        }
-
-    }
-
     window.addEventListener("resize", function() {
-        canvas.width = canvas.parentElement.clientWidth;
+        canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        setupProjection();
-    
+        aspect = canvas.width / canvas.height;
+
         gl.viewport(0,0,canvas.width, canvas.height);
+        mProjection = ortho(-edge*aspect,edge*aspect, -edge, edge,-3*edge,3*edge);
     });
 
     window.addEventListener("keydown", function(event) {
@@ -255,10 +319,14 @@ function setup(shaders)
                 else mode = gl.TRIANGLES;
                 break;
             case "ArrowUp":
-                alpha++;
+                if (height == 0 && !engineStarted) engineAnimation = true;
+                if (engineStarted && height < MAX_HEIGHT) height+=0.1;
                 break;
             case "ArrowDown":
-                alpha--;
+                if (height > 0) height-=0.1;
+                break;
+            case "ArrowLeft":
+                movementAnimation = true;
                 break;
         }
         
