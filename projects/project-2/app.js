@@ -69,6 +69,15 @@ function render()
             beta = easeInOutCubic(time, 0, 30, 0.85);
             dDelta = easeInExpo(time, 0, 2, 0.85);
         }
+        if (!movementAnimation && engineStarted) {
+            console.log("hello");
+            time -= speed;
+            if (time <= 0) time = 0;
+            beta = easeInExpo(time, 0, 30, 0.85);
+            dDelta = easeInExpo(time, 0, 2, 0.85);
+            console.log(beta);
+            console.log(dDelta);
+        }
 
         alpha += dAlpha;
         delta += dDelta;
@@ -82,8 +91,6 @@ function render()
         Helicopter();
     popMatrix();
 
-    movementAnimation = false;
-
     function uploadModelView()
     {
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(modelView()));
@@ -92,6 +99,13 @@ function render()
     function easeInExpo (t, b, c, d) {
         if (t >= d) t = d;
         return (t == 0) ? b : c * Math.pow(2, 10 * (t / d - 1)) + b;
+    }
+
+    function easeInOutExpo (t, b, c, d) {
+        if (t == 0) return b;
+        if (t == d) return b + c;
+        if ((t /= d / 2) < 1) return c / 2 * Math.pow(2, 10 * (t - 1)) + b;
+        return c / 2 * (-Math.pow(2, -10 * --t) + 2) + b;
     }
 
     function easeInOutCubic (t, b, c, d) {
@@ -329,6 +343,14 @@ function setup(shaders)
                 movementAnimation = true;
                 break;
         }
+        window.addEventListener("keyup", function(event) {
+            console.log(event.key);
+            switch(event.key) {
+            case "ArrowLeft":
+                movementAnimation = false;
+                break;
+            }
+        })
         
         mView = lookAt(vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.cos(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180)), vec3(0,0,0), vec3(0,1,0));
 
