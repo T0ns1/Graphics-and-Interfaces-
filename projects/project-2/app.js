@@ -1,10 +1,11 @@
 import { loadShadersFromURLS, setupWebGL, buildProgramFromSources } from '../../libs/utils.js';
-import { vec3, flatten, lookAt, ortho } from '../../libs/MV.js';
+import { vec3, flatten, lookAt, ortho, rotateX } from '../../libs/MV.js';
 import { modelView, loadMatrix, pushMatrix, popMatrix, multTranslation, multRotationX, multRotationY, multRotationZ,  multScale } from "../../libs/stack.js";
 
 import * as CUBE from '../../libs/objects/cube.js';
 import * as SPHERE from '../../libs/objects/sphere.js';
 import * as CYLINDER from '../../libs/objects/cylinder.js';
+import * as TORUS from '../../libs/objects/torus.js';
 
 const edge = 50;
 
@@ -47,6 +48,9 @@ function setup(shaders)
     let movementAnimation = false;
     let engineStarted = false;
     let animation = true;
+
+    /** atom animation parameters */
+    let dPhi = 0;
 
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
@@ -93,6 +97,9 @@ function setup(shaders)
                 if (mode == gl.TRIANGLES) mode = gl.LINES;
                 else mode = gl.TRIANGLES;
                 break;
+            case "p":
+                animation = !animation;
+                break;
             case "ArrowUp":
                 if (!engineStarted) engineAnimation = true;
                 else {
@@ -131,6 +138,7 @@ function setup(shaders)
     CUBE.init(gl);
     SPHERE.init(gl);
     CYLINDER.init(gl);
+    TORUS.init(gl, 30, 30, 0.4, 0.02);
 
     window.requestAnimationFrame(render);
 
@@ -276,7 +284,7 @@ function setup(shaders)
 
         pushMatrix();
             multTranslation([1.07, 0.12, 0.04]);
-            multRotationZ(alpha); // Rotorrs angle
+            multRotationZ(alpha); // Rotors angle
             multTranslation([-0.05,0.0,0.0]);
             multScale([0.1, 0.05, 0.02]);
             uploadModelView();
@@ -316,6 +324,109 @@ function setup(shaders)
         
     }
 
+    function atom() {
+        const uColor = gl.getUniformLocation(program, "uColor");
+
+        support();
+        pushMatrix();
+            multTranslation([0.0,12.0,0]);
+            pushMatrix();
+                nucleus();
+            popMatrix();
+            pushMatrix();
+                orbital();
+            popMatrix();
+            pushMatrix();
+                multRotationY(134+dPhi*0.8);
+                multTranslation([5.9,0,0]);
+                electron();
+            popMatrix();
+            pushMatrix();
+                multRotationX(35);
+                pushMatrix();
+                    multScale([1.3,1,1.3]);
+                    orbital();
+                popMatrix();
+                pushMatrix();
+                    multRotationY(110+dPhi*1.0);
+                    multTranslation([7.8,0,0]);
+                    electron();
+                popMatrix();
+            popMatrix();
+            pushMatrix();
+                multRotationX(-35);
+                multRotationZ(35);
+                pushMatrix();
+                    multScale([1.6,1,1.6]);
+                    orbital();
+                popMatrix();
+                pushMatrix();
+                    multRotationY(320+dPhi*1.2);
+                    multTranslation([9.4,0,0]);
+                    electron();
+                popMatrix();
+            popMatrix();
+        popMatrix();
+
+        function support() {
+
+            gl.uniform3fv(uColor, vec3(1.0, 1.0, 1.0)); // white
+
+            pushMatrix();
+                multTranslation([0,1.5,0]);
+                multScale([20,1,20]);
+                uploadModelView();
+                CUBE.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                multTranslation([0,2.5,0]);
+                multScale([15,1,15]);
+                uploadModelView();
+                CUBE.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                multTranslation([0,3.5,0]);
+                multScale([10,1,10]);
+                uploadModelView();
+                CUBE.draw(gl, program, mode);
+            popMatrix();
+        }
+
+        function nucleus() {
+            
+            gl.uniform3fv(uColor, vec3(0.0, 0.3, 0.7)); // blue-ish
+
+            multScale([5.0,5.0,5.0]);
+            uploadModelView();
+
+            SPHERE.draw(gl, program, mode);
+
+        }
+
+        function orbital() {
+            
+            gl.uniform3fv(uColor, vec3(0.3, 0.3, 0.3)); // grey-ish
+
+            multScale([15.0,15.0,15.0]);
+            uploadModelView();
+                
+            TORUS.draw(gl, program, mode);
+
+        }
+
+        function electron() {
+            
+            gl.uniform3fv(uColor, vec3(0.8, 0.0, 0.1)); // red-ish
+
+            multScale([2.0,2.0,2.0]);
+            uploadModelView();
+            
+            SPHERE.draw(gl, program, mode);
+
+        }
+
+    }
+
     function render()
     {
         window.requestAnimationFrame(render);
@@ -328,7 +439,7 @@ function setup(shaders)
         mProjection = ortho(-aspect*edge*zoom,aspect*edge*zoom, -zoom*edge, zoom*edge,-3*edge,3*edge);
         uploadProjection(mProjection);
 
-        // Load the ModelView matrix with the Worl to Camera (View) matrix
+        // Load the ModelView matrix with the World to Camera (View) matrix
         loadMatrix(mView);
 
         if (animation) {
@@ -355,11 +466,12 @@ function setup(shaders)
 
                     beta = easeInExpo(time, 0, 30, 0.85);
                     dDelta = easeInExpo(time, 0, 2, 0.85);
-                }
+                }  
             }
 
             alpha += dAlpha;
             delta += dDelta;
+            dPhi += 5;
         }
 
         floor();
@@ -370,6 +482,9 @@ function setup(shaders)
             multRotationZ(beta);
             multTranslation([2.5,0.0,0.0]);
             Helicopter();
+        popMatrix();
+        pushMatrix();
+            atom();
         popMatrix();
     }
 
