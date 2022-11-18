@@ -362,7 +362,7 @@ function setup(shaders)
                 popMatrix();
                 pushMatrix();
                     multRotationY(320+dPhi*1.2);
-                    multTranslation([9.4,0,0]);
+                    multTranslation([9.6,0,0]);
                     electron();
                 popMatrix();
             popMatrix();
@@ -389,6 +389,12 @@ function setup(shaders)
                 multScale([10,1,10]);
                 uploadModelView();
                 CUBE.draw(gl, program, mode);
+            popMatrix();
+            pushMatrix();
+                multTranslation([0.0,6.7,0.0]);
+                multScale([3.0,5.5,3.0]);
+                uploadModelView();
+                CYLINDER.draw(gl, program, mode);
             popMatrix();
         }
 
@@ -425,6 +431,19 @@ function setup(shaders)
 
         }
 
+    }
+
+    function hat() {
+        
+        const uColor = gl.getUniformLocation(program, "uColor");
+        gl.uniform3fv(uColor, vec3(0.0,0.0,0.0));
+
+        pushMatrix();
+            multTranslation([20.0,3.5,20.0]);
+            multScale([3.0,5.0,3.0]);
+            uploadModelView();   
+            CYLINDER.draw(gl, program, mode);
+        popMatrix();
     }
 
     function render()
@@ -485,6 +504,9 @@ function setup(shaders)
         popMatrix();
         pushMatrix();
             atom();
+        popMatrix();
+        pushMatrix();
+            hat();
         popMatrix();
     }
 
