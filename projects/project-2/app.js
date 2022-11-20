@@ -1,6 +1,6 @@
 import { loadShadersFromURLS, setupWebGL, buildProgramFromSources } from '../../libs/utils.js';
-import { vec3, flatten, lookAt, ortho, rotateX } from '../../libs/MV.js';
-import { modelView, loadMatrix, pushMatrix, popMatrix, multTranslation, multRotationX, multRotationY, multRotationZ,  multScale } from "../../libs/stack.js";
+import { vec3, flatten, lookAt, ortho } from '../../libs/MV.js';
+import { modelView, loadMatrix, multMatrix, pushMatrix, popMatrix, multTranslation, multRotationX, multRotationY, multRotationZ,  multScale, loadIdentity } from "../../libs/stack.js";
 
 import * as CUBE from '../../libs/objects/cube.js';
 import * as SPHERE from '../../libs/objects/sphere.js';
@@ -48,6 +48,10 @@ function setup(shaders)
     let movementAnimation = false;
     let engineStarted = false;
     let animation = true;
+    const boxes = [];
+    const boxes_height = [];
+    const boxes_initial_height = [];
+    const boxes_lifetime = [];
 
     /** atom animation parameters */
     let dPhi = 0;
@@ -99,6 +103,11 @@ function setup(shaders)
                 break;
             case "p":
                 animation = !animation;
+                break;
+            case " ":
+                boxes_lifetime.push(0);
+                boxes_height.push(height);
+                boxes_initial_height.push(height);
                 break;
             case "ArrowUp":
                 if (!engineStarted) engineAnimation = true;
@@ -177,6 +186,10 @@ function setup(shaders)
         return c / 2 * ((t -= 2) * t * t + 2) + b;
     }
 
+    function easeInQuad (t, b, c, d) {
+        return c * (t /= d) * t + b;
+    }
+
     function floor()
     {
         const uColor = gl.getUniformLocation(program, "uColor");
@@ -196,9 +209,9 @@ function setup(shaders)
         gl.uniform3fv(uColor, vec3(1.0, 0.0, 0.0)); // red
         
         // Scale helicopter
-        multScale([7.2,7.2,7.2]);
+        multScale([10.2,10.2,10.2]);
         // level with ground
-        multTranslation([0.0,0.42,0.0]);
+        multTranslation([0.0,0.365,0.0]);
 
         pushMatrix();
             multScale([0.8, 0.3, 0.3]);
@@ -322,6 +335,28 @@ function setup(shaders)
             SPHERE.draw(gl, program, mode);
         popMatrix();
         
+    }
+    
+    function createBoxMatrix() {
+
+        pushMatrix();
+            loadIdentity();
+            multRotationY(-delta);   
+            multTranslation([0.0,height,50.0]);
+            boxes.push(modelView());
+        popMatrix();
+
+    }
+
+    function box() {
+
+        const uColor = gl.getUniformLocation(program, "uColor");
+        gl.uniform3fv(uColor,vec3(0.92,0.76,0.1));
+
+        multScale([2.0,2.0,2.0]);
+        uploadModelView();
+
+        CUBE.draw(gl, program, mode);
     }
 
     function atom() {
@@ -495,13 +530,25 @@ function setup(shaders)
 
         floor();
         pushMatrix();
-            multRotationY(-delta);
+            multRotationY(-delta);   
             multTranslation([0.0,height,50.0]);
+            if (boxes.length != boxes_lifetime.length) createBoxMatrix();
             multTranslation([-2.5,0.0,0.0]);
             multRotationZ(beta);
             multTranslation([2.5,0.0,0.0]);
             Helicopter();
         popMatrix();
+            for (let i = 0; i < boxes_lifetime.length; i++) {
+                boxes_lifetime[i] += speed;
+                pushMatrix();
+                    multMatrix(boxes[i]);
+                    multTranslation([0,boxes_height[i],0]);
+                    multTranslation([0,-boxes_initial_height[i],0]);
+                    box();
+                popMatrix();
+                boxes_height[i] = Math.max(2.0, boxes_height[i] - 0.2);
+                if (boxes_lifetime[i] >= 5) boxes_lifetime.shift(), boxes.shift(), boxes_height.shift(), boxes_initial_height.shift();
+            }
         pushMatrix();
             atom();
         popMatrix();
