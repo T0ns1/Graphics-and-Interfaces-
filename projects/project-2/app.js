@@ -6,6 +6,7 @@ import * as CUBE from '../../libs/objects/cube.js';
 import * as SPHERE from '../../libs/objects/sphere.js';
 import * as CYLINDER from '../../libs/objects/cylinder.js';
 import * as TORUS from '../../libs/objects/torus.js';
+import * as BUNNY from '../../libs/objects/bunny.js';
 
 const edge = 50;
 
@@ -52,6 +53,12 @@ function setup(shaders)
     const boxes_height = [];
     const boxes_initial_height = [];
     const boxes_lifetime = [];
+    const boxes_velocity = [];
+    const boxes_radial_velocity = [];
+    const DRAG_COEFFICIENT = 1.05;
+    const AIR_DENSITY = 1.29;
+    const CROSS_SECTIONAL_AREA = 4;
+    const MASS_BOX = 100;
 
     /** atom animation parameters */
     let dPhi = 0;
@@ -108,6 +115,8 @@ function setup(shaders)
                 boxes_lifetime.push(0);
                 boxes_height.push(height);
                 boxes_initial_height.push(height);
+                boxes_velocity.push(0);
+                boxes_radial_velocity.push(dDelta);
                 break;
             case "ArrowUp":
                 if (!engineStarted) engineAnimation = true;
@@ -148,6 +157,7 @@ function setup(shaders)
     SPHERE.init(gl);
     CYLINDER.init(gl);
     TORUS.init(gl, 30, 30, 0.4, 0.02);
+    // BUNNY.init(gl);
 
     window.requestAnimationFrame(render);
 
@@ -363,45 +373,44 @@ function setup(shaders)
         const uColor = gl.getUniformLocation(program, "uColor");
 
         support();
+        multTranslation([0.0,12.0,0]);
         pushMatrix();
-            multTranslation([0.0,12.0,0]);
+            nucleus();
+        popMatrix();
+        pushMatrix();
+            orbital();
+        popMatrix();
+        pushMatrix();
+            multRotationY(134+dPhi*0.8);
+            multTranslation([5.9,0,0]);
+            electron();
+        popMatrix();
+        pushMatrix();
+            multRotationX(35);
             pushMatrix();
-                nucleus();
-            popMatrix();
-            pushMatrix();
+                multScale([1.3,1,1.3]);
                 orbital();
             popMatrix();
             pushMatrix();
-                multRotationY(134+dPhi*0.8);
-                multTranslation([5.9,0,0]);
+                multRotationY(110+dPhi*1.0);
+                multTranslation([7.8,0,0]);
                 electron();
             popMatrix();
+        popMatrix();
+        pushMatrix();
+            multRotationX(-35);
+            multRotationZ(35);
             pushMatrix();
-                multRotationX(35);
-                pushMatrix();
-                    multScale([1.3,1,1.3]);
-                    orbital();
-                popMatrix();
-                pushMatrix();
-                    multRotationY(110+dPhi*1.0);
-                    multTranslation([7.8,0,0]);
-                    electron();
-                popMatrix();
+                multScale([1.6,1,1.6]);
+                orbital();
             popMatrix();
             pushMatrix();
-                multRotationX(-35);
-                multRotationZ(35);
-                pushMatrix();
-                    multScale([1.6,1,1.6]);
-                    orbital();
-                popMatrix();
-                pushMatrix();
-                    multRotationY(320+dPhi*1.2);
-                    multTranslation([9.6,0,0]);
-                    electron();
-                popMatrix();
+                multRotationY(320+dPhi*1.2);
+                multTranslation([9.6,0,0]);
+                electron();
             popMatrix();
         popMatrix();
+        
 
         function support() {
 
@@ -499,7 +508,7 @@ function setup(shaders)
         if (animation) {
             if (engineAnimation && !engineStarted) {
                 time += speed;
-                dAlpha = easeInExpo(time, 0, 15, 5);
+                dAlpha = easeInExpo(time, 0, 15, 1);
                 if (dAlpha >= 15) {
                     engineStarted = true;
                     time = 0;
@@ -533,9 +542,9 @@ function setup(shaders)
             multRotationY(-delta);   
             multTranslation([0.0,height,50.0]);
             if (boxes.length != boxes_lifetime.length) createBoxMatrix();
-            multTranslation([-2.5,0.0,0.0]);
+            multTranslation([-3.4,0.0,0.0]);
             multRotationZ(beta);
-            multTranslation([2.5,0.0,0.0]);
+            multTranslation([3.4,0.0,0.0]);
             Helicopter();
         popMatrix();
             for (let i = 0; i < boxes_lifetime.length; i++) {
@@ -546,8 +555,12 @@ function setup(shaders)
                     multTranslation([0,-boxes_initial_height[i],0]);
                     box();
                 popMatrix();
-                boxes_height[i] = Math.max(2.0, boxes_height[i] - 0.2);
-                if (boxes_lifetime[i] >= 5) boxes_lifetime.shift(), boxes.shift(), boxes_height.shift(), boxes_initial_height.shift();
+                boxes_velocity[i] = boxes_velocity[i] + (-9.8) * boxes_lifetime[i];
+                boxes_height[i] = Math.max(2.0, boxes_height[i] + boxes_velocity[i] * boxes_lifetime[i]);
+                //let drag_force = AIR_DENSITY * Math.pow(boxes_radial_velocity[i],2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA / 2;
+                //let drag_acceleration = - drag_force / MASS_BOX;
+                //boxes_radial_velocity[i] = Math.max(0,boxes_radial_velocity[i] + drag_acceleration * boxes_lifetime[i]);
+                if (boxes_lifetime[i] >= 5) boxes_lifetime.shift(), boxes.shift(), boxes_height.shift(), boxes_initial_height.shift(), boxes_velocity.shift(), boxes_radial_velocity.shift();
             }
         pushMatrix();
             atom();
