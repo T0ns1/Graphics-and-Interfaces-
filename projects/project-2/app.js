@@ -1,5 +1,5 @@
 import { loadShadersFromURLS, setupWebGL, buildProgramFromSources } from '../../libs/utils.js';
-import { vec3, flatten, lookAt, ortho } from '../../libs/MV.js';
+import { vec3, flatten, lookAt, ortho, subtract, cross, normalize, mult, length } from '../../libs/MV.js';
 import { modelView, loadMatrix, multMatrix, pushMatrix, popMatrix, multTranslation, multRotationX, multRotationY, multRotationZ,  multScale, loadIdentity } from "../../libs/stack.js";
 
 import * as CUBE from '../../libs/objects/cube.js';
@@ -55,6 +55,7 @@ function setup(shaders)
     const boxes_lifetime = [];
     const boxes_velocity = [];
     const boxes_radial_velocity = [];
+    const boxes_radius = [];
     const DRAG_COEFFICIENT = 1.05;
     const AIR_DENSITY = 1.29;
     const CROSS_SECTIONAL_AREA = 4;
@@ -117,6 +118,7 @@ function setup(shaders)
                 boxes_initial_height.push(height);
                 boxes_velocity.push(0);
                 boxes_radial_velocity.push(dDelta);
+                boxes_radius.push(-delta);
                 break;
             case "ArrowUp":
                 if (!engineStarted) engineAnimation = true;
@@ -548,19 +550,34 @@ function setup(shaders)
             Helicopter();
         popMatrix();
             for (let i = 0; i < boxes_lifetime.length; i++) {
+                // Vertical motion
+                let drag_force = AIR_DENSITY * Math.pow(boxes_velocity[i],2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA / 2;
+                let drag_acceleration = drag_force / MASS_BOX;
+                let terminal_velocity = Math.sqrt(2*MASS_BOX*9.8/(AIR_DENSITY*CROSS_SECTIONAL_AREA*DRAG_COEFFICIENT));
+                boxes_velocity[i] = Math.max(-terminal_velocity,boxes_velocity[i] + (-9.8 + drag_acceleration) * boxes_lifetime[i]);
+                boxes_height[i] = Math.max(2.0, boxes_height[i] + boxes_velocity[i] * boxes_lifetime[i]);
+                
+                // Tangential motion
+                let r_vector = subtract(vec3(50*Math.sin(boxes_radius[i]*Math.PI/180),0,50*Math.cos(boxes_radius[i]*Math.PI/180)),vec3(0,0,0));
+                let unit_vector = normalize(cross(r_vector,vec3(0,1,0)));
+                let tangential_velocity = boxes_radial_velocity[i] * 50 * Math.PI / 180;
+                let tangential_velocity_vector = mult(vec3(tangential_velocity,tangential_velocity,tangential_velocity),unit_vector);
+                let drag_force_tangential = AIR_DENSITY * Math.pow(length(tangential_velocity),2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA;
+                let drag_acceleration_tangential = drag_force_tangential / MASS_BOX;
+                let drag_velocity_tangential = drag_acceleration_tangential * boxes_lifetime[i];
+                let drag_velocity_tangential_vector = mult(vec3(drag_velocity_tangential,drag_velocity_tangential,drag_velocity_tangential),unit_vector);
+                let total_tangential_velocity = subtract(tangential_velocity_vector,drag_velocity_tangential_vector);
+
                 boxes_lifetime[i] += speed;
                 pushMatrix();
+                    multTranslation(total_tangential_velocity);
                     multMatrix(boxes[i]);
                     multTranslation([0,boxes_height[i],0]);
                     multTranslation([0,-boxes_initial_height[i],0]);
                     box();
                 popMatrix();
-                boxes_velocity[i] = boxes_velocity[i] + (-9.8) * boxes_lifetime[i];
-                boxes_height[i] = Math.max(2.0, boxes_height[i] + boxes_velocity[i] * boxes_lifetime[i]);
-                //let drag_force = AIR_DENSITY * Math.pow(boxes_radial_velocity[i],2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA / 2;
-                //let drag_acceleration = - drag_force / MASS_BOX;
-                //boxes_radial_velocity[i] = Math.max(0,boxes_radial_velocity[i] + drag_acceleration * boxes_lifetime[i]);
-                if (boxes_lifetime[i] >= 5) boxes_lifetime.shift(), boxes.shift(), boxes_height.shift(), boxes_initial_height.shift(), boxes_velocity.shift(), boxes_radial_velocity.shift();
+
+                if (boxes_lifetime[i] >= 5) boxes_lifetime.shift(), boxes.shift(), boxes_height.shift(), boxes_initial_height.shift(), boxes_velocity.shift(), boxes_radial_velocity.shift(), boxes_radius.shift();
             }
         pushMatrix();
             atom();
