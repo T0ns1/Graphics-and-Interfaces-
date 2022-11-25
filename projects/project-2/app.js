@@ -1,5 +1,5 @@
 import { loadShadersFromURLS, setupWebGL, buildProgramFromSources } from '../../libs/utils.js';
-import { vec3, flatten, lookAt, ortho, subtract, cross, normalize, add, mult, length, radians, rotateX, rotateY } from '../../libs/MV.js';
+import { vec3, flatten, lookAt, ortho, perspective, subtract, cross, normalize, add, mult, length, radians, rotateX, rotateY } from '../../libs/MV.js';
 import { modelView, loadMatrix, multMatrix, pushMatrix, popMatrix, multTranslation, multRotationX, multRotationY, multRotationZ,  multScale, loadIdentity } from "../../libs/stack.js";
 import { GUI } from '../../libs/dat.gui.module.js';
 
@@ -35,6 +35,7 @@ function setup(shaders)
     let mProjection = ortho(-edge*aspect,edge*aspect, -edge, edge,-3*edge,3*edge);
 
     let regularView = true;
+    let helicopterView = false;
     let zoom = 1.0;
 
     /** Helicopter animation parameters */
@@ -44,8 +45,8 @@ function setup(shaders)
     let delta = 0;
     let dDelta = 0;
     let height = 0;
-    const MAX_HEIGHT = 40;
-    const RADIUS = 50;
+    const MAX_HEIGHT = 30;
+    const RADIUS = 40;
     let time = 0;
     const speed = 1/60;
     let engineAnimation = false;
@@ -68,7 +69,7 @@ function setup(shaders)
     const DRAG_COEFFICIENT = 1.05;
     const AIR_DENSITY = 1.29;
     const CROSS_SECTIONAL_AREA = 4;
-    const MASS_BOX = 100;
+    const MASS_BOX = 50;
 
     /** atom animation parameters */
     let dPhi = 0;
@@ -88,21 +89,30 @@ function setup(shaders)
             case '1':
                 // Regular view
                 regularView = true;
+                helicopterView = false;
                 break;
             case '2':
                 // Front view
                 regularView = false;
+                helicopterView = false;
                 mView = lookAt([0,0,1], [0,0.0,0], [0,1,0]);
                 break;
             case '3':
                 // Top view
                 regularView = false;
+                helicopterView = false;
                 mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
                 break;
             case '4':
                 // Right view
                 regularView = false;
+                helicopterView = false;
                 mView = lookAt([1,0,0], [0,0,0], [0,1,0]);
+                break;
+            case '5':
+                // Helicopter view
+                regularView = false;
+                helicopterView = true;
                 break;
             case "w":
                 mode = gl.LINES;
@@ -119,11 +129,11 @@ function setup(shaders)
             case "ArrowUp":
                 if (!engineStarted) engineAnimation = true;
                 else {
-                    height = Math.min(MAX_HEIGHT, height + 0.2);
+                    height = Math.min(MAX_HEIGHT, height + 0.3);
                 }
                 break;
             case "ArrowDown":
-                height = Math.max(0, height - 0.2);
+                height = Math.max(0, height - 0.3);
                 break;
             case "ArrowLeft":
                 movementAnimation = true;
@@ -197,7 +207,7 @@ function setup(shaders)
         const uColor = gl.getUniformLocation(program, "uColor");
         gl.uniform3fv(uColor, vec3(0.1,0.1,0.1)); //grey
 
-        multScale([110,1,110]);
+        multScale([130,1,130]);
         multTranslation([0.0,0.5,0.0]);
         uploadModelView();
             
@@ -344,7 +354,7 @@ function setup(shaders)
         boxes_height.push(height);
         boxes_initial_height.push(height);
         boxes_velocity.push(0);
-        boxes_tangential_velocity.push(dDelta*RADIUS*Math.PI/180);
+        boxes_tangential_velocity.push(dDelta*60*Math.PI/180*RADIUS);
         boxes_radius.push(-delta);
         boxes_tangential_displacement.push(vec3(0,0,0));
 
@@ -370,9 +380,9 @@ function setup(shaders)
             // Tangential motion
             const r_vector = subtract(vec3(RADIUS*Math.sin(boxes_radius[i]*Math.PI/180),0,RADIUS*Math.cos(boxes_radius[i]*Math.PI/180)),vec3(0,0,0));
             const unit_vector = normalize(cross(r_vector,vec3(0,1,0)));
-            const drag_force_tangential = AIR_DENSITY * Math.pow(length(boxes_tangential_velocity[i]),2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA / 2;
+            const drag_force_tangential = AIR_DENSITY * Math.pow(boxes_tangential_velocity[i],2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA / 2;
             const drag_acceleration_tangential = drag_force_tangential / MASS_BOX;
-            boxes_tangential_velocity[i] = Math.max(0,boxes_tangential_velocity[i] - drag_acceleration_tangential * boxes_lifetime[i]);
+            boxes_tangential_velocity[i] = Math.max(0,boxes_tangential_velocity[i] - (drag_acceleration_tangential * boxes_lifetime[i]));
             boxes_tangential_displacement[i] = add(boxes_tangential_displacement[i],mult(vec3(boxes_tangential_velocity[i]*boxes_lifetime[i],boxes_tangential_velocity[i]*boxes_lifetime[i],boxes_tangential_velocity[i]*boxes_lifetime[i]),unit_vector));
         }
 
@@ -515,12 +525,12 @@ function setup(shaders)
         const uColor = gl.getUniformLocation(program, "uColor");
         gl.uniform3fv(uColor, vec3(0.0,0.0,0.0));
 
-        pushMatrix();
-            multTranslation([20.0,3.5,20.0]);
-            multScale([3.0,5.0,3.0]);
-            uploadModelView();   
-            CYLINDER.draw(gl, program, mode);
-        popMatrix();
+        
+        multTranslation([20.0,3.5,40.0]);
+        multScale([3.0,5.0,3.0]);
+        uploadModelView();   
+        
+        CYLINDER.draw(gl, program, mode);
     }
 
     function render()
@@ -542,6 +552,14 @@ function setup(shaders)
             else up = vec3(0,1,0); 
             mView = lookAt(eye, at, up);
         }
+        if (helicopterView) {
+            const r_vector = subtract(vec3(RADIUS*Math.sin(-delta*Math.PI/180),0,RADIUS*Math.cos(-delta*Math.PI/180)),vec3(0,0,0));
+            const unit_vector = normalize(cross(r_vector,vec3(0,1,0)));
+            const eye = vec3(RADIUS*Math.sin(-delta*Math.PI/180),height+4.0,RADIUS*Math.cos(-delta*Math.PI/180));
+            mView = lookAt(eye,add(eye,unit_vector),[0,1,0]);
+            mProjection = perspective(25,aspect,15,edge*2);
+            uploadProjection(mProjection);
+        }
         loadMatrix(mView);
 
         if (animation) {
@@ -560,7 +578,7 @@ function setup(shaders)
                     time = Math.min(time,0.85);
 
                     beta = easeInOutCubic(time, 0, 30, 0.85);
-                    dDelta = easeInExpo(time, 0, 2, 0.85);
+                    dDelta = easeInExpo(time, 0, 0.8, 0.85);
                 }
                 else {
                     time -= speed;
