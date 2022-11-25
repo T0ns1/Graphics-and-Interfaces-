@@ -1,6 +1,7 @@
 import { loadShadersFromURLS, setupWebGL, buildProgramFromSources } from '../../libs/utils.js';
-import { vec3, flatten, lookAt, ortho, subtract, cross, normalize, mult, length } from '../../libs/MV.js';
+import { vec3, flatten, lookAt, ortho, subtract, cross, normalize, add, mult, length, radians, rotateX, rotateY } from '../../libs/MV.js';
 import { modelView, loadMatrix, multMatrix, pushMatrix, popMatrix, multTranslation, multRotationX, multRotationY, multRotationZ,  multScale, loadIdentity } from "../../libs/stack.js";
+import { GUI } from '../../libs/dat.gui.module.js';
 
 import * as CUBE from '../../libs/objects/cube.js';
 import * as SPHERE from '../../libs/objects/sphere.js';
@@ -23,16 +24,17 @@ function setup(shaders)
     let program = buildProgramFromSources(gl, shaders['shader.vert'], shaders['shader.frag']);
 
     /** Theta and gamma (degrees) for our camera coordinates */
-    let theta = 90;
-    let gamma = 45;
+    var theta = {value: 45};
+    var gamma = {value: 45};
 
-    const eye = vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.sin(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180));
+    let eye = vec3(3*Math.cos(theta.value*Math.PI/180)*Math.sin(gamma.value*Math.PI/180),3*Math.cos(gamma.value*Math.PI/180),3*Math.sin(theta.value*Math.PI/180)*Math.sin(gamma.value*Math.PI/180));
     const at = vec3(0,0,0);
-    const up = vec3(0,1,0);
+    let up = vec3(0,1,0);
 
     let mView = lookAt(eye, at, up);
     let mProjection = ortho(-edge*aspect,edge*aspect, -edge, edge,-3*edge,3*edge);
 
+    let regularView = true;
     let zoom = 1.0;
 
     /** Helicopter animation parameters */
@@ -43,19 +45,26 @@ function setup(shaders)
     let dDelta = 0;
     let height = 0;
     const MAX_HEIGHT = 40;
+    const RADIUS = 50;
     let time = 0;
     const speed = 1/60;
     let engineAnimation = false;
     let movementAnimation = false;
     let engineStarted = false;
+
     let animation = true;
+    
+    //** Boxes physics and animation parameters */
     const boxes = [];
     const boxes_height = [];
     const boxes_initial_height = [];
     const boxes_lifetime = [];
     const boxes_velocity = [];
-    const boxes_radial_velocity = [];
     const boxes_radius = [];
+    const boxes_tangential_velocity = [];
+    const boxes_tangential_displacement = [];
+
+    //** Constants for physics calculations */
     const DRAG_COEFFICIENT = 1.05;
     const AIR_DENSITY = 1.29;
     const CROSS_SECTIONAL_AREA = 4;
@@ -64,6 +73,13 @@ function setup(shaders)
     /** atom animation parameters */
     let dPhi = 0;
 
+    /** GUI */
+    const gui = new GUI();
+    const projectionFolder = gui.addFolder('Projection')
+    projectionFolder.add(theta, 'value', 0, 360).name('Change theta projection angle');
+    projectionFolder.add(gamma, 'value', 0, 180).name('Change gamma projection angle');
+    projectionFolder.open();
+
     resize_canvas();
     window.addEventListener("resize", resize_canvas);
 
@@ -71,65 +87,43 @@ function setup(shaders)
         switch(event.key) {
             case '1':
                 // Regular view
-                mView = lookAt(vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.cos(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180)), vec3(0,0,0), vec3(0,1,0));
+                regularView = true;
                 break;
             case '2':
                 // Front view
+                regularView = false;
                 mView = lookAt([0,0,1], [0,0.0,0], [0,1,0]);
                 break;
             case '3':
                 // Top view
+                regularView = false;
                 mView = lookAt([0,1,0],  [0,0,0], [0,0,-1]);
                 break;
             case '4':
                 // Right view
+                regularView = false;
                 mView = lookAt([1,0,0], [0,0,0], [0,1,0]);
                 break;
-            case "d":
-                theta--;
-                theta = Math.max(theta, 0);
-                mView = lookAt(vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.cos(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180)), vec3(0,0,0), vec3(0,1,0));
-                break;
-            case "a":
-                theta++;
-                theta = Math.min(theta,359);
-                mView = lookAt(vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.cos(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180)), vec3(0,0,0), vec3(0,1,0));
-                break;
             case "w":
-                gamma--;
-                gamma = Math.max(gamma,0);
-                mView = lookAt(vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.cos(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180)), vec3(0,0,0), vec3(0,1,0));
+                mode = gl.LINES;
                 break;
             case "s":
-                gamma++;
-                gamma = Math.min(gamma,359);
-                mView = lookAt(vec3(3*Math.cos(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180),3*Math.cos(gamma*Math.PI/180),3*Math.sin(theta*Math.PI/180)*Math.sin(gamma*Math.PI/180)), vec3(0,0,0), vec3(0,1,0));
-                break;
-            case "m":
-                if (mode == gl.TRIANGLES) mode = gl.LINES;
-                else mode = gl.TRIANGLES;
+                mode = gl.TRIANGLES;
                 break;
             case "p":
                 animation = !animation;
                 break;
             case " ":
-                boxes_lifetime.push(0);
-                boxes_height.push(height);
-                boxes_initial_height.push(height);
-                boxes_velocity.push(0);
-                boxes_radial_velocity.push(dDelta);
-                boxes_radius.push(-delta);
+                createBox();
                 break;
             case "ArrowUp":
                 if (!engineStarted) engineAnimation = true;
                 else {
-                    height += 0.2;
-                    height = Math.min(MAX_HEIGHT, height);
+                    height = Math.min(MAX_HEIGHT, height + 0.2);
                 }
                 break;
             case "ArrowDown":
-                height -= 0.2;
-                height = Math.max(0, height);
+                height = Math.max(0, height - 0.2);
                 break;
             case "ArrowLeft":
                 movementAnimation = true;
@@ -198,21 +192,16 @@ function setup(shaders)
         return c / 2 * ((t -= 2) * t * t + 2) + b;
     }
 
-    function easeInQuad (t, b, c, d) {
-        return c * (t /= d) * t + b;
-    }
-
     function floor()
     {
         const uColor = gl.getUniformLocation(program, "uColor");
         gl.uniform3fv(uColor, vec3(0.1,0.1,0.1)); //grey
 
-        pushMatrix();
-            multScale([110,1,110]);
-            multTranslation([0.0,0.5,0.0]);
-            uploadModelView();
-            CUBE.draw(gl, program, mode);
-        popMatrix();
+        multScale([110,1,110]);
+        multTranslation([0.0,0.5,0.0]);
+        uploadModelView();
+            
+        CUBE.draw(gl, program, mode);
     }
 
     function Helicopter()
@@ -349,15 +338,56 @@ function setup(shaders)
         
     }
     
-    function createBoxMatrix() {
+    function createBox() {
+
+        boxes_lifetime.push(0);
+        boxes_height.push(height);
+        boxes_initial_height.push(height);
+        boxes_velocity.push(0);
+        boxes_tangential_velocity.push(dDelta*RADIUS*Math.PI/180);
+        boxes_radius.push(-delta);
+        boxes_tangential_displacement.push(vec3(0,0,0));
 
         pushMatrix();
             loadIdentity();
             multRotationY(-delta);   
-            multTranslation([0.0,height,50.0]);
+            multTranslation([0.0,height,RADIUS]);
             boxes.push(modelView());
         popMatrix();
 
+    }
+
+    function updateBox(i) {
+
+        if (boxes_height[i] > 0) {
+            // Vertical motion
+            const drag_force = AIR_DENSITY * Math.pow(boxes_velocity[i],2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA / 2;
+            const drag_acceleration = drag_force / MASS_BOX;
+            const terminal_velocity = Math.sqrt(2*MASS_BOX*9.8/(AIR_DENSITY*CROSS_SECTIONAL_AREA*DRAG_COEFFICIENT));
+            boxes_velocity[i] = Math.min(-terminal_velocity,boxes_velocity[i] + (-9.8 + drag_acceleration) * boxes_lifetime[i]);
+            boxes_height[i] = Math.max(0, boxes_height[i] + boxes_velocity[i] * boxes_lifetime[i]);
+                
+            // Tangential motion
+            const r_vector = subtract(vec3(RADIUS*Math.sin(boxes_radius[i]*Math.PI/180),0,RADIUS*Math.cos(boxes_radius[i]*Math.PI/180)),vec3(0,0,0));
+            const unit_vector = normalize(cross(r_vector,vec3(0,1,0)));
+            const drag_force_tangential = AIR_DENSITY * Math.pow(length(boxes_tangential_velocity[i]),2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA / 2;
+            const drag_acceleration_tangential = drag_force_tangential / MASS_BOX;
+            boxes_tangential_velocity[i] = Math.max(0,boxes_tangential_velocity[i] - drag_acceleration_tangential * boxes_lifetime[i]);
+            boxes_tangential_displacement[i] = add(boxes_tangential_displacement[i],mult(vec3(boxes_tangential_velocity[i]*boxes_lifetime[i],boxes_tangential_velocity[i]*boxes_lifetime[i],boxes_tangential_velocity[i]*boxes_lifetime[i]),unit_vector));
+        }
+
+        boxes_lifetime[i] += speed;
+
+        if (boxes_lifetime[i] >= 5) {
+            boxes_lifetime.shift(); 
+            boxes.shift(); 
+            boxes_height.shift(); 
+            boxes_initial_height.shift(); 
+            boxes_velocity.shift();
+            boxes_tangential_velocity.shift(); 
+            boxes_radius.shift();
+            boxes_tangential_displacement.shift();
+        }
     }
 
     function box() {
@@ -365,6 +395,7 @@ function setup(shaders)
         const uColor = gl.getUniformLocation(program, "uColor");
         gl.uniform3fv(uColor,vec3(0.92,0.76,0.1));
 
+        multTranslation([0.0,2.0,0.0]);
         multScale([2.0,2.0,2.0]);
         uploadModelView();
 
@@ -505,6 +536,12 @@ function setup(shaders)
         uploadProjection(mProjection);
 
         // Load the ModelView matrix with the World to Camera (View) matrix
+        if (regularView) {
+            eye = vec3(3*Math.cos(theta.value*Math.PI/180)*Math.sin(gamma.value*Math.PI/180),3*Math.cos(gamma.value*Math.PI/180),3*Math.sin(theta.value*Math.PI/180)*Math.sin(gamma.value*Math.PI/180));
+            if (gamma.value == 0) up = vec3(-1*Math.cos(theta.value*Math.PI/180),0,-1*Math.sin(theta.value*Math.PI/180));
+            else up = vec3(0,1,0); 
+            mView = lookAt(eye, at, up);
+        }
         loadMatrix(mView);
 
         if (animation) {
@@ -539,46 +576,27 @@ function setup(shaders)
             dPhi += 5;
         }
 
-        floor();
+        pushMatrix();
+            floor();
+        popMatrix();
         pushMatrix();
             multRotationY(-delta);   
-            multTranslation([0.0,height,50.0]);
-            if (boxes.length != boxes_lifetime.length) createBoxMatrix();
+            multTranslation([0.0,height,RADIUS]);
             multTranslation([-3.4,0.0,0.0]);
             multRotationZ(beta);
             multTranslation([3.4,0.0,0.0]);
             Helicopter();
         popMatrix();
-            for (let i = 0; i < boxes_lifetime.length; i++) {
-                // Vertical motion
-                let drag_force = AIR_DENSITY * Math.pow(boxes_velocity[i],2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA / 2;
-                let drag_acceleration = drag_force / MASS_BOX;
-                let terminal_velocity = Math.sqrt(2*MASS_BOX*9.8/(AIR_DENSITY*CROSS_SECTIONAL_AREA*DRAG_COEFFICIENT));
-                boxes_velocity[i] = Math.max(-terminal_velocity,boxes_velocity[i] + (-9.8 + drag_acceleration) * boxes_lifetime[i]);
-                boxes_height[i] = Math.max(2.0, boxes_height[i] + boxes_velocity[i] * boxes_lifetime[i]);
-                
-                // Tangential motion
-                let r_vector = subtract(vec3(50*Math.sin(boxes_radius[i]*Math.PI/180),0,50*Math.cos(boxes_radius[i]*Math.PI/180)),vec3(0,0,0));
-                let unit_vector = normalize(cross(r_vector,vec3(0,1,0)));
-                let tangential_velocity = boxes_radial_velocity[i] * 50 * Math.PI / 180;
-                let tangential_velocity_vector = mult(vec3(tangential_velocity,tangential_velocity,tangential_velocity),unit_vector);
-                let drag_force_tangential = AIR_DENSITY * Math.pow(length(tangential_velocity),2) * DRAG_COEFFICIENT * CROSS_SECTIONAL_AREA;
-                let drag_acceleration_tangential = drag_force_tangential / MASS_BOX;
-                let drag_velocity_tangential = drag_acceleration_tangential * boxes_lifetime[i];
-                let drag_velocity_tangential_vector = mult(vec3(drag_velocity_tangential,drag_velocity_tangential,drag_velocity_tangential),unit_vector);
-                let total_tangential_velocity = subtract(tangential_velocity_vector,drag_velocity_tangential_vector);
-
-                boxes_lifetime[i] += speed;
-                pushMatrix();
-                    multTranslation(total_tangential_velocity);
-                    multMatrix(boxes[i]);
-                    multTranslation([0,boxes_height[i],0]);
-                    multTranslation([0,-boxes_initial_height[i],0]);
-                    box();
-                popMatrix();
-
-                if (boxes_lifetime[i] >= 5) boxes_lifetime.shift(), boxes.shift(), boxes_height.shift(), boxes_initial_height.shift(), boxes_velocity.shift(), boxes_radial_velocity.shift(), boxes_radius.shift();
-            }
+        for (let i = 0; i < boxes.length; i++) {
+            updateBox(i);
+            pushMatrix();
+                multTranslation(boxes_tangential_displacement[i]);
+                multMatrix(boxes[i]);
+                multTranslation([0,boxes_height[i],0]);
+                multTranslation([0,-boxes_initial_height[i],0]);
+                box();
+            popMatrix();
+        }
         pushMatrix();
             atom();
         popMatrix();
