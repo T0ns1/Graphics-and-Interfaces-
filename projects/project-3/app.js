@@ -37,30 +37,65 @@ function setup(shaders) {
         depth_test: true,
     }
 
-    let lights = {
-        MAX_LIGHTS: 3,
-        light1: true,
-        light2: false,
-        light3: false,
-
+    // light class and constructor
+    class Light {
+        constructor() {
+            this.on = true;
+            this.position = vec4(0.0, 0.0, 10.0, 1.0);
+            this.ambient = vec3(50, 50, 50);
+            this.diffuse = vec3(60, 60, 60);
+            this.specular = vec3(200, 200, 200);
+            this.axis = vec3(0,0,-1);
+            this.aperture = 10;
+            this.cutoff = 10;
+        }
     }
+
+    // Array for the lights
+    const lights = []; 
+
+    var addLight = { addLight:function() {
+        lights.push(new Light());
+        
+        const subFolder = lightsGUI.addFolder("Light" + lights.length);
+
+        subFolder.add(lights[lights.length-1], "on");
+
+        const positionFolder = subFolder.addFolder("position");
+        positionFolder.add(lights[lights.length-1].position, 0).step(0.05).name("x");
+        positionFolder.add(lights[lights.length-1].position, 1).step(0.05).name("y");
+        positionFolder.add(lights[lights.length-1].position, 2).step(0.05).name("z");
+        positionFolder.add(lights[lights.length-1].position, 3).min(0).max(1).step(1).name("w");
+
+        const intensitiesFolder = subFolder.addFolder("intensities");
+        intensitiesFolder.addColor(lights[lights.length-1], "ambient");
+        intensitiesFolder.addColor(lights[lights.length-1], "diffuse");
+        intensitiesFolder.addColor(lights[lights.length-1], "specular");
+
+        const axisFolder = subFolder.addFolder("axis");
+        axisFolder.add(lights[lights.length-1].axis, 0).step(1).name("x");
+        axisFolder.add(lights[lights.length-1].axis, 1).step(1).name("y");
+        axisFolder.add(lights[lights.length-1].axis, 2).step(1).name("z");
+
+        subFolder.add(lights[lights.length-1], "aperture").min(0).max(360);
+        subFolder.add(lights[lights.length-1], "cutoff").min(0).max(360);
+    }};
 
     const gui = new dat.GUI();
 
     const optionsGui = gui.addFolder("options");
-    optionsGui.add(options, "backface_culling");
-    optionsGui.add(options, "depth_test");
+    optionsGui.add(options, "backface_culling").name("backface culling");
+    optionsGui.add(options, "depth_test").name("depth test");
 
     const cameraGui = gui.addFolder("camera");
 
     cameraGui.add(camera, "fovy").min(1).max(100).step(1).listen();
-    cameraGui.add(camera, "aspect").min(0).max(10).domElement.style.pointerEvents = "none";
     
     cameraGui.add(camera, "near").min(0.1).max(20).onChange( function(v) {
         camera.near = Math.min(camera.far-0.5, v);
     });
 
-    cameraGui.add(camera, "far").min(0.1).max(20).listen().onChange( function(v) {
+    cameraGui.add(camera, "far").min(0.1).max(50).listen().onChange( function(v) {
         camera.far = Math.max(camera.near+0.5, v);
     });
 
@@ -80,11 +115,7 @@ function setup(shaders) {
     up.add(camera.up, 2).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
 
     const lightsGUI = gui.addFolder("lights");
-    lightsGUI.add(lights, "light1");
-    lightsGUI.add(lights, "light2");
-    lightsGUI.add(lights, "light3");
-
-    const light1 = lightsGUI.addFolder("Light1");
+    lightsGUI.add(addLight, "addLight").name("Add light source");
 
     // matrices
     let mView, mProjection;
