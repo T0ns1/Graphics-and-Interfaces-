@@ -340,15 +340,14 @@ function setup(shaders)
             uploadModelView();
             SPHERE.draw(gl, program, mode);
         popMatrix();
+        multRotationY(alpha);
         pushMatrix();
-            multRotationY(alpha);
             multTranslation([0.4, 0.18, 0.0]);
             multScale([0.8, 0.03, 0.1]);
             uploadModelView();
             SPHERE.draw(gl, program, mode);
         popMatrix();
         pushMatrix();
-            multRotationY(alpha);
             multRotationY(-60);
             multTranslation([-0.4, 0.18, -0.0]);
             multScale([0.8, 0.03, 0.1]);
@@ -356,7 +355,6 @@ function setup(shaders)
             SPHERE.draw(gl, program, mode);
         popMatrix();
         pushMatrix();
-            multRotationY(alpha);
             multRotationY(60);
             multTranslation([-0.4, 0.18, 0.0]);
             multScale([0.8, 0.03, 0.1]);

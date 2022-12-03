@@ -139,6 +139,9 @@ function _buildVertices(diskPoints) {
 
 
 function draw(gl, program, primitive) { 
+
+	gl.useProgram(program);
+
     gl.bindBuffer(gl.ARRAY_BUFFER, points_buffer);
     var vPosition = gl.getAttribLocation(program, "vPosition");
     gl.vertexAttribPointer(vPosition, 3, gl.FLOAT, false, 0, 0);
