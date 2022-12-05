@@ -61,7 +61,7 @@ function setup(shaders) {
             this.ambient = vec3(50, 50, 50);
             this.diffuse = vec3(60, 60, 60);
             this.specular = vec3(200, 200, 200);
-            this.axis = vec3(0,0,-1);
+            this.axis = vec4(0,0,-1,0);
             this.aperture = 10;
             this.cutoff = 10;
         }
@@ -99,7 +99,7 @@ function setup(shaders) {
         axisFolder.add(lights[lights.length-1].axis, 2).step(1).name("z");
 
         subFolder.add(lights[lights.length-1], "aperture").min(0).max(360);
-        subFolder.add(lights[lights.length-1], "cutoff").min(0).max(360);
+        subFolder.add(lights[lights.length-1], "cutoff").min(0).max(180);
     }};
 
     const gui = new dat.GUI();
@@ -157,36 +157,6 @@ function setup(shaders) {
     addLight.addLight();
 
     window.addEventListener('resize', resizeCanvasToFullWindow);
-
-    window.addEventListener('wheel', function(event) {
-
-        
-        if(!event.altKey && !event.metaKey && !event.ctrlKey) { // Change fovy
-            const factor = 1 - event.deltaY/1000;
-            camera.fovy = Math.max(1, Math.min(100, camera.fovy * factor)); 
-        }
-        else if(event.metaKey || event.ctrlKey) {
-            // move camera forward and backwards (shift)
-
-            const offset = event.deltaY / 1000;
-
-            const dir = normalize(subtract(camera.at, camera.eye));
-
-            const ce = add(camera.eye, scale(offset, dir));
-            const ca = add(camera.at, scale(offset, dir));
-            
-            // Can't replace the objects that are being listened by dat.gui, only their properties.
-            camera.eye[0] = ce[0];
-            camera.eye[1] = ce[1];
-            camera.eye[2] = ce[2];
-
-            if(event.ctrlKey) {
-                camera.at[0] = ca[0];
-                camera.at[1] = ca[1];
-                camera.at[2] = ca[2];
-            }
-        }
-    });
 
     function inCameraSpace(m) {
         const mInvView = inverse(mView);
@@ -290,14 +260,14 @@ function setup(shaders) {
             gl.uniform3fv(uKsLight, flatten(lights[i].specular));
 
             const uPosLight = gl.getUniformLocation(program, "uLights[" + i + "].position");
-            if (lights[i].position[3] == 0.0) gl.uniform4fv(uPosLight, flatten(mult(normalMatrix(mView),lights[i].position))), console.log("hello");
-            else gl.uniform4fv(uPosLight, flatten(mult(mView,lights[i].position)));
+            if (lights[i].position[3] == 0) gl.uniform4fv(uPosLight, flatten(mult(normalMatrix(mView),lights[i].position))), console.log(mult(normalMatrix(mView),lights[i].position));
+            else gl.uniform4fv(uPosLight, flatten(mult(mView,lights[i].position))), console.log(mult(mView,lights[i].position));
             const uAxis = gl.getUniformLocation(program, "uLights[" + i + "].axis");
-            gl.uniform3fv(uAxis, flatten(lights[i].axis));
+            gl.uniform4fv(uAxis, flatten(mult(normalMatrix(mView),lights[i].axis)));
             const uAperture = gl.getUniformLocation(program, "uLights[" + i + "].aperture");
-            gl.uniform1i(uAperture, parseInt(lights[i].aperture));
+            gl.uniform1f(uAperture, Math.cos(lights[i].aperture*Math.PI/180));
             const uCutoff = gl.getUniformLocation(program, "uLights[" + i + "].cutoff");
-            gl.uniform1i(uCutoff, parseInt(lights[i].cutoff));
+            gl.uniform1f(uCutoff, lights[i].cutoff);
         }
     }
 

@@ -17,12 +17,6 @@ void main()
     // normals in camera frame
     fNormal = (mNormals * vec4(vNormal, 0.0)).xyz;
 
-    // lights in camera frame
-    //if(lightPosition.w == 0.0)
-    //    fLight = normalize((mViewNormals * lightPosition).xyz);
-    //else
-    //    fLight = normalize((mView * lightPosition).xyz - posC);
-
     // view vector
     fViewer = -posC; // Perspective projection
 
