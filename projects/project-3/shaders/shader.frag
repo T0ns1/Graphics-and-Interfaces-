@@ -3,6 +3,8 @@ precision highp float;
 const int MAX_LIGHTS = 3;
 
 struct LightInfo {
+    bool on;
+    
     // Light colour intensities
     vec3 ambient;
     vec3 diffuse;
@@ -41,6 +43,7 @@ void main()
 
     for(int i=0; i<MAX_LIGHTS; i++) {
         if(i == uNLights) break;
+        if(uLights[i].on == false) continue;
 
         vec3 ambientColor = (uLights[i].ambient/colorScale) * (uMaterial.Ka/colorScale);
         vec3 diffuseColor = (uLights[i].diffuse/colorScale) * (uMaterial.Kd/colorScale);
@@ -73,7 +76,7 @@ void main()
             }
 
             float attenuation = pow(theta,uLights[i].cutoff);
-            diffuse  *= attenuation;
+            diffuse *= attenuation;
             specular *= attenuation;
         }
     }

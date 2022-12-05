@@ -48,10 +48,10 @@ function setup(shaders) {
     }
 
     const tableMaterial = new Material(vec3(202, 123, 44), vec3(202, 123, 44), vec3(255, 255, 255), 10);
-    const cubeMaterial = new Material(vec3(205, 48, 38), vec3(150, 35, 25), vec3(255, 255, 255), 4);
-    const cylinderMaterial = new Material(vec3(44, 233, 189), vec3(20, 200, 150), vec3(255, 255, 255), 8);
+    const cubeMaterial = new Material(vec3(205, 48, 38), vec3(205, 48, 38), vec3(255, 255, 255), 4);
+    const cylinderMaterial = new Material(vec3(44, 233, 189), vec3(44, 233, 189), vec3(255, 255, 255), 8);
     let bunnyMaterial = new Material(vec3(150, 150, 150), vec3(150, 150, 150), vec3(200, 200, 200), 100);
-    const torusMaterial = new Material(vec3(47, 230, 102), vec3(10, 100, 50), vec3(255, 255, 255), 6);
+    const torusMaterial = new Material(vec3(47, 230, 102), vec3(47, 230, 102), vec3(255, 255, 255), 6);
 
     // light class and constructor
     class Light {
@@ -62,7 +62,7 @@ function setup(shaders) {
             this.diffuse = vec3(60, 60, 60);
             this.specular = vec3(200, 200, 200);
             this.axis = vec4(0,0,-1,0);
-            this.aperture = 10;
+            this.aperture = 25;
             this.cutoff = 10;
         }
     }
@@ -98,7 +98,7 @@ function setup(shaders) {
         axisFolder.add(lights[lights.length-1].axis, 1).step(1).name("y");
         axisFolder.add(lights[lights.length-1].axis, 2).step(1).name("z");
 
-        subFolder.add(lights[lights.length-1], "aperture").min(0).max(360);
+        subFolder.add(lights[lights.length-1], "aperture").min(0).max(180);
         subFolder.add(lights[lights.length-1], "cutoff").min(0).max(180);
     }};
 
@@ -252,6 +252,9 @@ function setup(shaders) {
         gl.uniform1i(gl.getUniformLocation(program, "uNLights"), parseInt(nLights));
         
         for(var i = 0; i < nLights; i++) {
+            const uOn = gl.getUniformLocation(program, "uLights[" + i +"].on");
+            gl.uniform1i(uOn, lights[i].on);
+
             const uKaLight = gl.getUniformLocation(program, "uLights[" + i +"].ambient");
             gl.uniform3fv(uKaLight, flatten(lights[i].ambient));
             const uKdLight = gl.getUniformLocation(program, "uLights[" + i + "].diffuse");
@@ -261,11 +264,11 @@ function setup(shaders) {
 
             const uPosLight = gl.getUniformLocation(program, "uLights[" + i + "].position");
             if (lights[i].position[3] == 0) gl.uniform4fv(uPosLight, flatten(mult(normalMatrix(mView),lights[i].position))), console.log(mult(normalMatrix(mView),lights[i].position));
-            else gl.uniform4fv(uPosLight, flatten(mult(mView,lights[i].position))), console.log(mult(mView,lights[i].position));
+            else gl.uniform4fv(uPosLight, flatten(mult(mView,lights[i].position)));
             const uAxis = gl.getUniformLocation(program, "uLights[" + i + "].axis");
             gl.uniform4fv(uAxis, flatten(mult(normalMatrix(mView),lights[i].axis)));
             const uAperture = gl.getUniformLocation(program, "uLights[" + i + "].aperture");
-            gl.uniform1f(uAperture, Math.cos(lights[i].aperture*Math.PI/180));
+            gl.uniform1f(uAperture, Math.cos(lights[i].aperture*Math.PI/360));
             const uCutoff = gl.getUniformLocation(program, "uLights[" + i + "].cutoff");
             gl.uniform1f(uCutoff, lights[i].cutoff);
         }
