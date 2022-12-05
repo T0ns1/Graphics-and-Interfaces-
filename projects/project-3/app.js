@@ -37,6 +37,22 @@ function setup(shaders) {
         depth_test: true,
     }
 
+    // Material class and construction
+    class Material {
+        constructor(ka, kd, ks, shininess) {
+            this.ka = ka;
+            this.kd = kd;
+            this.ks = ks;
+            this.shininess = shininess;
+        }
+    }
+
+    const tableMaterial = new Material(vec3(202, 123, 44), vec3(202, 123, 44), vec3(255, 255, 255), 10);
+    const cubeMaterial = new Material(vec3(205, 48, 38), vec3(150, 35, 25), vec3(255, 255, 255), 4);
+    const cylinderMaterial = new Material(vec3(44, 233, 189), vec3(20, 200, 150), vec3(255, 255, 255), 8);
+    let bunnyMaterial = new Material(vec3(150, 150, 150), vec3(150, 150, 150), vec3(200, 200, 200), 100);
+    const torusMaterial = new Material(vec3(47, 230, 102), vec3(10, 100, 50), vec3(255, 255, 255), 6);
+
     // light class and constructor
     class Light {
         constructor() {
@@ -51,11 +67,16 @@ function setup(shaders) {
         }
     }
 
-    // Array for the lights
-    const lights = []; 
+    // Lights' Parameters
+    const lights = [];
+    let nLights = 0;
+    const MAX_LIGHTS = 3; 
 
     var addLight = { addLight:function() {
+        if (nLights == MAX_LIGHTS) return;
+        
         lights.push(new Light());
+        nLights++;
         
         const subFolder = lightsGUI.addFolder("Light" + lights.length);
 
@@ -100,22 +121,28 @@ function setup(shaders) {
     });
 
     const eye = cameraGui.addFolder("eye");
-    eye.add(camera.eye, 0).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
-    eye.add(camera.eye, 1).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
-    eye.add(camera.eye, 2).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
+    eye.add(camera.eye, 0).step(0.1).listen();
+    eye.add(camera.eye, 1).step(0.1).listen();
+    eye.add(camera.eye, 2).step(0.1).listen();
 
     const at = cameraGui.addFolder("at");
-    at.add(camera.at, 0).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
-    at.add(camera.at, 1).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
-    at.add(camera.at, 2).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
+    at.add(camera.at, 0).step(0.1).listen();
+    at.add(camera.at, 1).step(0.1).listen();
+    at.add(camera.at, 2).step(0.1).listen();
 
     const up = cameraGui.addFolder("up");
-    up.add(camera.up, 0).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
-    up.add(camera.up, 1).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
-    up.add(camera.up, 2).step(0.05).listen();//.domElement.style.pointerEvents = "none";;
+    up.add(camera.up, 0).step(0.1).listen();
+    up.add(camera.up, 1).step(0.1).listen();
+    up.add(camera.up, 2).step(0.1).listen();
 
     const lightsGUI = gui.addFolder("lights");
     lightsGUI.add(addLight, "addLight").name("Add light source");
+
+    const materialGUI = gui.addFolder("material");
+    materialGUI.addColor(bunnyMaterial, "ka").name("Ka");
+    materialGUI.addColor(bunnyMaterial, "kd").name("Kd");
+    materialGUI.addColor(bunnyMaterial, "ks").name("Ks");
+    materialGUI.add(bunnyMaterial, "shininess");
 
     // matrices
     let mView, mProjection;
@@ -126,6 +153,8 @@ function setup(shaders) {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
     resizeCanvasToFullWindow();
+
+    addLight.addLight();
 
     window.addEventListener('resize', resizeCanvasToFullWindow);
 
@@ -206,12 +235,10 @@ function setup(shaders) {
         down=true;
         lastX = event.offsetX;
         lastY = event.offsetY;
-        gl.clearColor(0.2, 0.0, 0.0, 1.0);
     });
 
     canvas.addEventListener('mouseup', function(event) {
         down = false;
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
     });
 
     window.requestAnimationFrame(render);
@@ -240,6 +267,40 @@ function setup(shaders) {
         gl.uniform3fv(gl.getUniformLocation(program, "uColor"), vec3(r,g,b));
     }
 
+    function useMaterial(ka, kd, ks, shininess) {
+        const uKa = gl.getUniformLocation(program, "uMaterial.Ka");
+        gl.uniform3fv(uKa, flatten(ka));
+        const uKd = gl.getUniformLocation(program, "uMaterial.Kd");
+        gl.uniform3fv(uKd, flatten(kd));
+        const uKs = gl.getUniformLocation(program, "uMaterial.Ks");
+        gl.uniform3fv(uKs, flatten(ks));
+        const uShininess = gl.getUniformLocation(program, "uMaterial.shininess");
+        gl.uniform1f(uShininess, shininess);
+    }
+
+    function updateLights() {
+        gl.uniform1i(gl.getUniformLocation(program, "uNLights"), parseInt(nLights));
+        
+        for(var i = 0; i < nLights; i++) {
+            const uKaLight = gl.getUniformLocation(program, "uLights[" + i +"].ambient");
+            gl.uniform3fv(uKaLight, flatten(lights[i].ambient));
+            const uKdLight = gl.getUniformLocation(program, "uLights[" + i + "].diffuse");
+            gl.uniform3fv(uKdLight, flatten(lights[i].diffuse));
+            const uKsLight = gl.getUniformLocation(program, "uLights[" + i + "].specular");
+            gl.uniform3fv(uKsLight, flatten(lights[i].specular));
+
+            const uPosLight = gl.getUniformLocation(program, "uLights[" + i + "].position");
+            if (lights[i].position[3] == 0.0) gl.uniform4fv(uPosLight, flatten(mult(normalMatrix(mView),lights[i].position))), console.log("hello");
+            else gl.uniform4fv(uPosLight, flatten(mult(mView,lights[i].position)));
+            const uAxis = gl.getUniformLocation(program, "uLights[" + i + "].axis");
+            gl.uniform3fv(uAxis, flatten(lights[i].axis));
+            const uAperture = gl.getUniformLocation(program, "uLights[" + i + "].aperture");
+            gl.uniform1i(uAperture, parseInt(lights[i].aperture));
+            const uCutoff = gl.getUniformLocation(program, "uLights[" + i + "].cutoff");
+            gl.uniform1i(uCutoff, parseInt(lights[i].cutoff));
+        }
+    }
+
     function render()
     {
         window.requestAnimationFrame(render);
@@ -259,45 +320,45 @@ function setup(shaders) {
 
         mProjection = perspective(camera.fovy, camera.aspect, camera.near, camera.far);
 
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mView"), false, flatten(mView))
+        updateLights();
+
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(STACK.modelView()));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mProjection"), false, flatten(mProjection));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mNormals"), false, flatten(normalMatrix(STACK.modelView())));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "mViewNormals"), false, flatten(normalMatrix(mView)));
 
         STACK.pushMatrix();
             STACK.multTranslation([0, -1.25, 0]);
             STACK.multScale([10, 0.5, 10]);
             uploadModelView();
-            useColor(202, 123, 44);
+            useMaterial(tableMaterial.ka, tableMaterial.kd, tableMaterial.ks, tableMaterial.shininess);
             CUBE.draw(gl, program, gl.TRIANGLES);
         STACK.popMatrix();
         STACK.pushMatrix();
             STACK.multTranslation([-2, 0, -2]);
             STACK.multScale([2, 2, 2]);
             uploadModelView();
-            useColor(205, 48, 38);
+            useMaterial(cubeMaterial.ka, cubeMaterial.kd, cubeMaterial.ks, cubeMaterial.shininess);
             CUBE.draw(gl, program, gl.TRIANGLES);
         STACK.popMatrix();
         STACK.pushMatrix();
             STACK.multTranslation([2, 0, -2]);
             STACK.multScale([2, 2, 2]);
             uploadModelView();
-            useColor(44, 233, 189);
+            useMaterial(cylinderMaterial.ka, cylinderMaterial.kd, cylinderMaterial.ks, cylinderMaterial.shininess);
             CYLINDER.draw(gl, program, gl.TRIANGLES);
         STACK.popMatrix();
         STACK.pushMatrix();
             STACK.multTranslation([2, -1, 2]);
             STACK.multScale([15, 15, 15]);
             uploadModelView();
-            useColor(238, 18, 99);
+            useMaterial(bunnyMaterial.ka, bunnyMaterial.kd, bunnyMaterial.ks, bunnyMaterial.shininess);
             BUNNY.draw(gl, program, gl.TRIANGLES);
         STACK.popMatrix();
         STACK.pushMatrix();
             STACK.multTranslation([-2, -0.6, 2]);
             STACK.multScale([2, 2, 2]);
             uploadModelView();
-            useColor(47, 230, 102);
+            useMaterial(torusMaterial.ka, torusMaterial.kd, torusMaterial.ks, torusMaterial.shininess);
             TORUS.draw(gl, program, gl.TRIANGLES);
         STACK.popMatrix();
     }
