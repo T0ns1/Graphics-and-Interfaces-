@@ -3,6 +3,7 @@ precision highp float;
 const int MAX_LIGHTS = 3;
 
 struct LightInfo {
+    // Light on/off
     bool on;
     
     // Light colour intensities
@@ -51,7 +52,7 @@ void main()
 
         vec3 light;
         if (abs(uLights[i].position.w - 1.0) > 0.01)
-            light = normalize(uLights[i].position.xyz);
+            light = normalize(-uLights[i].position.xyz);
         else
             light = normalize(uLights[i].position.xyz + fViewer);
 
@@ -62,22 +63,30 @@ void main()
 
         ambient += ambientColor;
 
-        float theta = dot(L, normalize(-uLights[i].axis.xyz));
+        float alpha;
+        if (length(uLights[i].axis) == 0.0)
+            alpha = 0.0;
+        else 
+            alpha = dot(L, normalize(-uLights[i].axis.xyz));
 
-        if((theta > uLights[i].aperture) || (abs(uLights[i].position.w - 1.0) > 0.01)) {
+        if((alpha > uLights[i].aperture) || (abs(uLights[i].position.w - 1.0) > 0.01)) {
             float diffuseFactor = max( dot(L,N), 0.0 );
             diffuse += diffuseFactor * diffuseColor;
-
-            float specularFactor = pow(max(dot(N,H), 0.0), uMaterial.shininess);
-            specular += specularFactor * specularColor;
 
             if ( dot(L,N) < 0.0 ) {
                 specular += vec3(0.0, 0.0, 0.0);
             }
-
-            float attenuation = pow(theta,uLights[i].cutoff);
-            diffuse *= attenuation;
-            specular *= attenuation;
+            else {
+                float specularFactor = pow(max(dot(N,H), 0.0), uMaterial.shininess);
+                specular += specularFactor * specularColor;
+            }
+            
+            if (!(abs(uLights[i].position.w - 1.0) > 0.01)) {
+                alpha = max(0.0001, alpha);
+                float attenuation = pow(alpha,uLights[i].cutoff);
+                diffuse *= attenuation;
+                specular *= attenuation;
+            }
         }
     }
 

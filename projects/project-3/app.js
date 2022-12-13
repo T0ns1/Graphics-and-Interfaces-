@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from '../../libs/utils.js';
-import { length, flatten, inverse, mult, normalMatrix, perspective, lookAt, vec4, vec3, vec2, subtract, add, scale, rotate, normalize } from '../../libs/MV.js';
+import { length, flatten, inverse, mult, normalMatrix, perspective, lookAt, vec4, vec3, vec2, subtract, rotate } from '../../libs/MV.js';
 
 import * as dat from '../../libs/dat.gui.module.js';
 
@@ -27,7 +27,7 @@ function setup(shaders) {
         at: vec3(0,0,0),
         up: vec3(0,1,0),
         fovy: 45,
-        aspect: 1, // Updated further down
+        aspect: 1,
         near: 0.1,
         far: 50
     }
@@ -69,14 +69,12 @@ function setup(shaders) {
 
     // Lights' Parameters
     const lights = [];
-    let nLights = 0;
     const MAX_LIGHTS = 3; 
 
     var addLight = { addLight:function() {
-        if (nLights == MAX_LIGHTS) return;
+        if (lights.length == MAX_LIGHTS) return;
         
         lights.push(new Light());
-        nLights++;
         
         const subFolder = lightsGUI.addFolder("Light" + lights.length);
 
@@ -98,7 +96,7 @@ function setup(shaders) {
         axisFolder.add(lights[lights.length-1].axis, 1).step(1).name("y");
         axisFolder.add(lights[lights.length-1].axis, 2).step(1).name("z");
 
-        subFolder.add(lights[lights.length-1], "aperture").min(0).max(180);
+        subFolder.add(lights[lights.length-1], "aperture").min(0).max(360);
         subFolder.add(lights[lights.length-1], "cutoff").min(0).max(180);
     }};
 
@@ -170,7 +168,6 @@ function setup(shaders) {
             const dy = event.offsetY - lastY;
 
             if(dx != 0 || dy != 0) {
-                // Do something here...
 
                 const d = vec2(dx, dy);
                 const axis = vec3(-dy, -dx, 0);
@@ -227,16 +224,6 @@ function setup(shaders) {
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "mModelView"), false, flatten(STACK.modelView()));
     }
 
-    function useColor(r, g, b) {
-        const scale = 255;
-
-        r /= scale;
-        g /= scale;
-        b /= scale;
-
-        gl.uniform3fv(gl.getUniformLocation(program, "uColor"), vec3(r,g,b));
-    }
-
     function useMaterial(ka, kd, ks, shininess) {
         const uKa = gl.getUniformLocation(program, "uMaterial.Ka");
         gl.uniform3fv(uKa, flatten(ka));
@@ -249,9 +236,9 @@ function setup(shaders) {
     }
 
     function updateLights() {
-        gl.uniform1i(gl.getUniformLocation(program, "uNLights"), parseInt(nLights));
+        gl.uniform1i(gl.getUniformLocation(program, "uNLights"), parseInt(lights.length));
         
-        for(var i = 0; i < nLights; i++) {
+        for(var i = 0; i < lights.length; i++) {
             const uOn = gl.getUniformLocation(program, "uLights[" + i +"].on");
             gl.uniform1i(uOn, lights[i].on);
 
@@ -268,6 +255,7 @@ function setup(shaders) {
             const uAxis = gl.getUniformLocation(program, "uLights[" + i + "].axis");
             gl.uniform4fv(uAxis, flatten(mult(normalMatrix(mView),lights[i].axis)));
             const uAperture = gl.getUniformLocation(program, "uLights[" + i + "].aperture");
+            console.log(Math.cos(lights[i].aperture*Math.PI/360));
             gl.uniform1f(uAperture, Math.cos(lights[i].aperture*Math.PI/360));
             const uCutoff = gl.getUniformLocation(program, "uLights[" + i + "].cutoff");
             gl.uniform1f(uCutoff, lights[i].cutoff);

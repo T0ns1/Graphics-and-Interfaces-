@@ -6,7 +6,6 @@ uniform mat4 mModelView;
 uniform mat4 mNormals;
 
 varying vec3 fNormal;
-//varying vec3 fLight;
 varying vec3 fViewer;
 
 void main()
@@ -20,6 +19,6 @@ void main()
     // view vector
     fViewer = -posC; // Perspective projection
 
-
-    gl_Position = mProjection * mModelView * vPosition;
+    
+    gl_Position = mProjection * vec4(posC, 1.0);
 }
