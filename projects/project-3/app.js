@@ -1,5 +1,5 @@
 import { buildProgramFromSources, loadShadersFromURLS, setupWebGL } from '../../libs/utils.js';
-import { length, flatten, inverse, mult, normalMatrix, perspective, lookAt, vec4, vec3, vec2, subtract, rotate } from '../../libs/MV.js';
+import { length, flatten, inverse, mult, add, normalMatrix, perspective, lookAt, vec4, vec3, vec2, subtract, rotate } from '../../libs/MV.js';
 
 import * as dat from '../../libs/dat.gui.module.js';
 
@@ -19,7 +19,7 @@ function setup(shaders) {
     BUNNY.init(gl);
     TORUS.init(gl);
 
-    const program = buildProgramFromSources(gl, shaders['shader.vert'], shaders['shader.frag']);
+    const program = buildProgramFromSources(gl, shaders['phong.vert'], shaders['phong.frag']);
 
     // Camera  
     let camera = {
@@ -156,10 +156,9 @@ function setup(shaders) {
 
     window.addEventListener('resize', resizeCanvasToFullWindow);
 
-    function inCameraSpace(m) {
-        const mInvView = inverse(mView);
+    function toCameraAxis(m) {
 
-        return mult(mInvView, mult(m, mView));
+        return mult(inverse(mView), mult(m, mView));
     }
 
     canvas.addEventListener('mousemove', function(event) {
@@ -174,22 +173,15 @@ function setup(shaders) {
 
                 const rotation = rotate(0.5*length(d), axis);
 
-                let eyeAt = subtract(camera.eye, camera.at);                
-                eyeAt = vec4(eyeAt[0], eyeAt[1], eyeAt[2], 0);
+                let atEye = subtract(camera.eye, camera.at);                
+                atEye = vec4(atEye[0], atEye[1], atEye[2], 0);
                 let newUp = vec4(camera.up[0], camera.up[1], camera.up[2], 0);
 
-                eyeAt = mult(inCameraSpace(rotation), eyeAt);
-                newUp = mult(inCameraSpace(rotation), newUp);
-                
-                console.log(eyeAt, newUp);
+                atEye = mult(toCameraAxis(rotation), atEye);
+                newUp = mult(toCameraAxis(rotation), newUp);
 
-                camera.eye[0] = camera.at[0] + eyeAt[0];
-                camera.eye[1] = camera.at[1] + eyeAt[1];
-                camera.eye[2] = camera.at[2] + eyeAt[2];
-
-                camera.up[0] = newUp[0];
-                camera.up[1] = newUp[1];
-                camera.up[2] = newUp[2];
+                camera.eye = add(camera.at, vec3(atEye[0], atEye[1], atEye[2]));
+                camera.up = vec3(newUp[0], newUp[1], newUp[2]);
 
                 lastX = event.offsetX;
                 lastY = event.offsetY;
@@ -250,12 +242,11 @@ function setup(shaders) {
             gl.uniform3fv(uKsLight, flatten(lights[i].specular));
 
             const uPosLight = gl.getUniformLocation(program, "uLights[" + i + "].position");
-            if (lights[i].position[3] == 0) gl.uniform4fv(uPosLight, flatten(mult(normalMatrix(mView),lights[i].position))), console.log(mult(normalMatrix(mView),lights[i].position));
+            if (lights[i].position[3] == 0) gl.uniform4fv(uPosLight, flatten(mult(normalMatrix(mView),lights[i].position)));
             else gl.uniform4fv(uPosLight, flatten(mult(mView,lights[i].position)));
             const uAxis = gl.getUniformLocation(program, "uLights[" + i + "].axis");
             gl.uniform4fv(uAxis, flatten(mult(normalMatrix(mView),lights[i].axis)));
             const uAperture = gl.getUniformLocation(program, "uLights[" + i + "].aperture");
-            console.log(Math.cos(lights[i].aperture*Math.PI/360));
             gl.uniform1f(uAperture, Math.cos(lights[i].aperture*Math.PI/360));
             const uCutoff = gl.getUniformLocation(program, "uLights[" + i + "].cutoff");
             gl.uniform1f(uCutoff, lights[i].cutoff);
@@ -325,6 +316,6 @@ function setup(shaders) {
     }
 }
 
-const urls = ['shader.vert', 'shader.frag'];
+const urls = ['phong.vert', 'phong.frag'];
 
 loadShadersFromURLS(urls).then( shaders => setup(shaders));
